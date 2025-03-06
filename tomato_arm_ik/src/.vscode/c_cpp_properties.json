@@ -1,0 +1,20 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/ueyasuryo/catkin_ws/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/ueyasuryo/catkin_ws/src/beginner_tutorials/include/**",
+        "/home/ueyasuryo/catkin_ws/src/crane_urdf/include/**",
+        "/home/ueyasuryo/catkin_ws/src/learning_joy/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}

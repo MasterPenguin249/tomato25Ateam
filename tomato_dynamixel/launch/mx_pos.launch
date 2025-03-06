@@ -1,0 +1,6 @@
+<launch>
+	<node name="mx_pos" pkg="tomato_dynamixel" type="mx_pos" output="screen">
+		<param name="dev" value="/dev/ttyUSB0"/>
+	</node> 
+</launch>
+

@@ -1,0 +1,7 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/tomato1/catkin_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/home/tomato1/tomato2022_d_ws/devel/lib/python3/dist-packages"
+    ]
+}

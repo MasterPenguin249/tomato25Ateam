@@ -1,0 +1,5 @@
+<launch>
+    <node name="talker" pkg="tomato_pubsub" type="talker" output="screen"/>
+    <node name="listener" pkg="tomato_pubsub" type="listener" output="screen"/>
+</launch>
+

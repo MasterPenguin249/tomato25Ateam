@@ -1,0 +1,32 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/tomato1/catkin_ws/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/tomato1/tomato2022_d_ws/devel/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/depthimage_to_laserscan/include/**",
+        "/home/tomato1/catkin_ws/src/day5-actual/dynamixel-workbench/dynamixel_workbench_controllers/include/**",
+        "/home/tomato1/catkin_ws/src/day5-actual/dynamixel-workbench/dynamixel_workbench_operators/include/**",
+        "/home/tomato1/catkin_ws/src/day5-actual/dynamixel-workbench/dynamixel_workbench_toolbox/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/kobuki_bumper2pc/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/kobuki_gazebo_plugins/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/kobuki_keyop/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/kobuki_node/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki_operation/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/kobuki_safety_controller/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/turtlebot_apps/turtlebot_actions/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/yocs_cmd_vel_mux/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/yocs_controllers/include/**",
+        "/home/tomato1/catkin_ws/src/day4-kobuki/kobuki/yocs_velocity_smoother/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}

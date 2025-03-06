@@ -1,0 +1,6 @@
+<launch>
+	<node name="ax_double_pos" pkg="tomato_dynamixel" type="ax_double_pos" output="screen">
+		<param name="dev" value="/dev/ttyUSB0"/>
+	</node> 
+</launch>
+
