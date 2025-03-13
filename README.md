@@ -11,7 +11,7 @@
 ```bash
 $ mkdir -p ~/catkin_ws/src
 $ cd ~/catkin_ws/src
-$ git clone https://gitlab.com/ytazz/tomato2023.git
+$ git clone 
 $ cd tomato2023
 $ catkin build
 ```
