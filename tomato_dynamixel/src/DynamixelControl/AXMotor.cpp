@@ -19,6 +19,13 @@ AXMotor::AXMotor(int id, unsigned int torque_limit_percent)
 
 AXMotor::~AXMotor(){};
 
+bool AXMotor::protocol_version_check(dynamixel::PacketHandler* packethandler)
+{
+    float ph_protocol_ver = packethandler -> getProtocolVersion();
+    if( ph_protocol_ver == protocol_version ) return true;
+    else return false;
+}
+
 
 double AXMotor::get_current_position()
 {
@@ -32,6 +39,17 @@ double AXMotor::get_goal_value()
 
 bool AXMotor::torque_on(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
 {
+    // Protocol Version Check
+    if( protocol_version_check(packethandler) )
+    {
+        // Protocol check is ok!
+    }
+    else
+    {
+        ROS_ERROR("Wrong Packet handler is used. AXMotor using Protocol 1.");
+        return false;
+    }
+
     uint8_t dxl_error = 0;
 
     uint16_t limit_data = (int)(1024 * torque_limit_per/100); 
@@ -60,6 +78,17 @@ bool AXMotor::torque_on(dynamixel::PortHandler* porthandler, dynamixel::PacketHa
 
 bool AXMotor::torque_off(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
 {
+    // Protocol Version Check
+    if( protocol_version_check(packethandler) )
+    {
+        // Protocol check is ok!
+    }
+    else
+    {
+        ROS_ERROR("Wrong Packet handler is used. AXMotor using Protocol 1.");
+        return false;
+    }
+
     uint8_t dxl_error = 0;
     int result = packethandler->write1ByteTxRx(porthandler, id, ADDR_TORQUE_ENABLE_P1, 0, &dxl_error);
     if (result == COMM_SUCCESS) {
@@ -71,8 +100,11 @@ bool AXMotor::torque_off(dynamixel::PortHandler* porthandler, dynamixel::PacketH
     }
 }
 
-bool  AXMotor::goalset(double goal, dynamixel::GroupSyncWrite* groupsyncwrite)
+bool  AXMotor::goalset(double goal, dynamixel::GroupSyncWrite* groupsyncwrite)  // WARNIG: this GroupSyncWrite Pointer should be Protocol 1.0. Be careful!!
 {
+    // groupsyncwriteのオブジェクトを作成する段階でpackethandlerを指定するため、
+    // ここでprotocolのバージョンを確認できない。かなり用心して使用すべし。
+
     goal_value = goal;
 
     // ラジアンで受け取る予定
@@ -107,6 +139,17 @@ bool  AXMotor::goalset(double goal, dynamixel::GroupSyncWrite* groupsyncwrite)
 
 bool AXMotor::readposition(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
 {
+    // Protocol Version Check
+    if( protocol_version_check(packethandler) )
+    {
+        // Protocol check is ok!
+    }
+    else
+    {
+        ROS_ERROR("Wrong Packet handler is used. AXMotor using Protocol 1.");
+        return false;
+    }
+
     uint16_t data_current_pos;
     uint8_t dxl_error;
     bool dxl_comm_result = packethandler->read2ByteTxRx(porthandler, id, ADDR_PRESENT_POSITION_P1, &data_current_pos, &dxl_error);

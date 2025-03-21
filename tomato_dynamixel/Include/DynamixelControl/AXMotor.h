@@ -35,9 +35,12 @@
 class AXMotor
 {
 private:
-    double current_position; // [rad]
-    double goal_value;  // [rad] (or [rad/s] ?)
+    const float protocol_version = 1.0;
+    double current_position;    // [rad]
+    double goal_value;          // [rad] (or [rad/s] ?)
     unsigned int torque_limit_per;
+
+    bool protocol_version_check(dynamixel::PacketHandler* packethandler);
 
 public:
     AXMotor(int id);
