@@ -123,6 +123,7 @@ bool  AXMotor::goalset(double goal, dynamixel::GroupSyncWrite* groupsyncwrite)  
     double goal_rad = goal * (300 * M_PI / 180)/1024;
     // ROS_INFO("goal_pos : %f", goal_rad);
 
+    // 配列に格納し直してポインタを合わせる
     uint8_t param_goal_position[2];
     param_goal_position[0] = DXL_LOBYTE( goal_data );
     param_goal_position[1] = DXL_HIBYTE( goal_data );
@@ -136,6 +137,8 @@ bool  AXMotor::goalset(double goal, dynamixel::GroupSyncWrite* groupsyncwrite)  
 
     return true;
 }
+
+// AXモーターはSyncReadができないのでそのまま読み取る
 
 bool AXMotor::readposition(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
 {

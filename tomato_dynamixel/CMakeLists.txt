@@ -37,3 +37,8 @@ add_executable(class_test_ax
 src/class_test_ax.cpp
 src/DynamixelControl/AXMotor.cpp)
 target_link_libraries(class_test_ax ${catkin_LIBRARIES})
+
+add_executable(class_test_mx
+src/class_test_mx.cpp
+src/DynamixelControl/MXMotor.cpp)
+target_link_libraries(class_test_mx ${catkin_LIBRARIES})

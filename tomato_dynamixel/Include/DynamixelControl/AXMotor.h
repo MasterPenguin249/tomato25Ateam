@@ -3,16 +3,6 @@
 #include <ros/ros.h>
 #include "dynamixel_sdk/dynamixel_sdk.h"
 
-// Control table address for protocol 2 (MX, XC)
-#define ADDR_OPERATING_MODE_P2   11
-#define ADDR_TORQUE_ENABLE_P2    64
-#define ADDR_GOAL_CURRENT_P2     102
-#define ADDR_GOAL_VELOCITY_P2    104
-#define ADDR_GOAL_POSITION_P2    116
-#define ADDR_PRESENT_CURRENT_P2 126
-#define ADDR_PRESENT_VELOCITY_P2 128
-#define ADDR_PRESENT_POSITION_P2 132
-
 // Control table address for protocol 1 (AX)
 #define ADDR_TORQUE_ENABLE_P1    24
 #define ADDR_GOAL_POSITION_P1    30
@@ -35,7 +25,6 @@
 class AXMotor
 {
 private:
-    const float protocol_version = 1.0;
     double current_position;    // [rad]
     double goal_value;          // [rad] (or [rad/s] ?)
     unsigned int torque_limit_per;
@@ -47,6 +36,7 @@ public:
     AXMotor(int id, unsigned int torque_limit_percent);
     ~AXMotor();
 
+    const float protocol_version = 1.0;
     const int id;
 
     double get_current_position();
