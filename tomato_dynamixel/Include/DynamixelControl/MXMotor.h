@@ -37,10 +37,13 @@ private:
     double goal_value;          //[rad] or [rad/s] or [mA]?
     std::string mode;           //"velocity control", "current base position control"
 
-    bool protocol_version_check(dynamixel::PacketHandler* packethandler);
+    dynamixel::PortHandler* porthandler;
+    dynamixel::PacketHandler* packethandler;
+
+    bool protocol_version_check();
     
 public:
-    MXMotor(int id);
+    MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
     // MXMotor(int id, unsigned int limit_per);     // Impose torque limit
     ~MXMotor();
 
@@ -50,17 +53,15 @@ public:
     double get_current_position();
     double get_goal_value();
 
-    bool modeset(std::string mode_in, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
+    bool modeset(std::string mode_in);
     // bool read_addparam_pos(dynamixel::GroupBulkRead* groupbulkread);
     bool read_addparam_vel(dynamixel::GroupBulkRead* groupbulkread);
 
-    bool torque_on (dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
-    bool torque_off(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
+    bool torque_on ();
+    bool torque_off();
     
     bool goalset(double goal, dynamixel::GroupBulkWrite* groupbulkwrite);
     // bool readposition(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
     bool readvelocity(dynamixel::GroupBulkRead* groupbulkread);
 
-    // 多態性をもたせるにはporthandler,packethandler, groupbulkread, groupbulkwriteとかはメンバ変数としてポインタを持ったほうがいいかも
-    // 同じスコープで呼び出せなくなる気がする
 };

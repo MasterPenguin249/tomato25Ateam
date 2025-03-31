@@ -1,10 +1,12 @@
 #include "DynamixelControl/MXMotor.h"
 
-MXMotor::MXMotor(int id):id(id){};
+MXMotor::MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+:id(id), porthandler(porthandler), packethandler(packethandler)
+{};
 
 MXMotor::~MXMotor(){};
 
-bool MXMotor::protocol_version_check(dynamixel::PacketHandler* packethandler)
+bool MXMotor::protocol_version_check()
 {
     float ph_protocol_ver = packethandler -> getProtocolVersion();
     if( ph_protocol_ver == protocol_version ) return true;
@@ -21,10 +23,10 @@ double MXMotor::get_goal_value()
     return goal_value;
 }
 
-bool MXMotor::modeset(std::string mode_in, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+bool MXMotor::modeset(std::string mode_in)
 {
     // Protocol Version Check
-    if( protocol_version_check(packethandler) )
+    if( protocol_version_check() )
     {
         // Protocol Check is ok!
     }
@@ -68,10 +70,10 @@ bool MXMotor::read_addparam_vel(dynamixel::GroupBulkRead* groupbulkread)
     return true;
 }
 
-bool MXMotor::torque_on(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+bool MXMotor::torque_on()
 {
     // Protocol Version Check
-    if( protocol_version_check(packethandler) )
+    if( protocol_version_check() )
     {
         // Protocol Check is ok!
     }
@@ -94,10 +96,10 @@ bool MXMotor::torque_on(dynamixel::PortHandler* porthandler, dynamixel::PacketHa
     }
 }
 
-bool MXMotor::torque_off(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+bool MXMotor::torque_off()
 {
     // Protocol Version Check
-    if( protocol_version_check(packethandler) )
+    if( protocol_version_check() )
     {
         // Protocol Check is ok!
     }

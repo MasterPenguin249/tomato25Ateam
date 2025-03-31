@@ -8,26 +8,11 @@
 
 using namespace dynamixel;
 
-// Control table address for protocol 2 (MX, XC)
-#define ADDR_OPERATING_MODE_P2   11
-#define ADDR_TORQUE_ENABLE_P2    64
-#define ADDR_GOAL_CURRENT_P2     102
-#define ADDR_GOAL_VELOCITY_P2    104
-#define ADDR_GOAL_POSITION_P2    116
-#define ADDR_PRESENT_CURRENT_P2 126
-#define ADDR_PRESENT_VELOCITY_P2 128
-#define ADDR_PRESENT_POSITION_P2 132
-
 // Protocol version
-#define PROTOCOL_VERSION1      1.0
 #define PROTOCOL_VERSION2      2.0
 
 // Default setting
 #define BAUDRATE              1000000
-
-#define CURRENT_MODE          0
-#define VELOCITY_MODE         1
-#define POSITION_MODE         3
 
 #define NODE_FREQUENCY        200
 
@@ -80,14 +65,14 @@ int main(int argc, char ** argv)
   GroupBulkRead groupBulkRead(portHandler, packetHandler2);
 
   // get MX Motor Object
-  MXMotor mxmotor_10(10);
+  MXMotor mxmotor_10(10,portHandler, packetHandler2);
 
   // set velocity control mode
-  bool modeset = mxmotor_10.modeset("velocity control", portHandler, packetHandler2);
+  bool modeset = mxmotor_10.modeset("velocity control");
   if(!modeset) return -1;
 
   // torque on
-  bool torqueon =  mxmotor_10.torque_on(portHandler,packetHandler2);
+  bool torqueon =  mxmotor_10.torque_on();
   if( !torqueon ) return -1;
 
   // Add Read Group
@@ -120,7 +105,7 @@ int main(int argc, char ** argv)
   }
 
   // Torque Off
-  bool torqueoff =  mxmotor_10.torque_off(portHandler,packetHandler2);
+  bool torqueoff =  mxmotor_10.torque_off();
   if( !torqueoff ) return -1;
 
   portHandler->closePort();
