@@ -36,9 +36,12 @@ int main(int argc, char ** argv)
     return -1;
   }
  
+  // add SyncWrite group
+  dynamixel::GroupSyncWrite groupSyncWrite(portHandler, packetHandler1, ADDR_GOAL_POSITION_P1, 2/* Byte*/);
+
   // get AX Motor Object
-  AXMotor axmotor_5(5,10, portHandler, packetHandler1);
-  AXMotor axmotor_4(4,10, portHandler, packetHandler1);
+  AXMotor axmotor_5(5,10, portHandler, packetHandler1, &groupSyncWrite);
+  AXMotor axmotor_4(4,10, portHandler, packetHandler1, &groupSyncWrite);
 
   // Torque On
   bool torque_result = axmotor_5.torque_on();
@@ -47,16 +50,12 @@ int main(int argc, char ** argv)
   torque_result = axmotor_4.torque_on();
   if(!torque_result) return -1;
 
-
-  // add SyncWrite group
-  dynamixel::GroupSyncWrite groupSyncWrite(portHandler, packetHandler1, ADDR_GOAL_POSITION_P1, 2/* Byte*/);
-
   while(ros::ok())
   {
     ros::spinOnce();
    
     // SyncWrite
-    axmotor_5.goalset(position_ax_write, &groupSyncWrite);
+    axmotor_5.goalset(position_ax_write);
     dxl_comm_result = groupSyncWrite.txPacket();
     if(dxl_comm_result != COMM_SUCCESS){
         packetHandler1 -> getTxRxResult(dxl_comm_result);
@@ -67,7 +66,7 @@ int main(int argc, char ** argv)
         packetHandler1->getRxPacketError(dxl_error);
     }
 
-    axmotor_4.goalset(position_ax_write, &groupSyncWrite);
+    axmotor_4.goalset(position_ax_write);
     dxl_comm_result = groupSyncWrite.txPacket();
     if(dxl_comm_result != COMM_SUCCESS){
         packetHandler1 -> getTxRxResult(dxl_comm_result);
@@ -80,8 +79,8 @@ int main(int argc, char ** argv)
     groupSyncWrite.clearParam();
 
     // Read 
-    axmotor_5.readposition();
-    axmotor_4.readposition();
+    axmotor_5.read();
+    axmotor_4.read();
 
 
     // Reflesh target

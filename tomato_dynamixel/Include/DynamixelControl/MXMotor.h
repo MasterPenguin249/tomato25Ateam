@@ -39,12 +39,13 @@ private:
 
     dynamixel::PortHandler* porthandler;
     dynamixel::PacketHandler* packethandler;
+    dynamixel::GroupBulkRead* groupbulkread;
+    dynamixel::GroupBulkWrite* groupbulkwrite;
 
     bool protocol_version_check();
     
 public:
-    MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
-    // MXMotor(int id, unsigned int limit_per);     // Impose torque limit
+    MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupBulkRead* groupbulkread, dynamixel::GroupBulkWrite* groupbulkwrite);
     ~MXMotor();
 
     const float protocol_version = 2.0;
@@ -54,14 +55,10 @@ public:
     double get_goal_value();
 
     bool modeset(std::string mode_in);
-    // bool read_addparam_pos(dynamixel::GroupBulkRead* groupbulkread);
-    bool read_addparam_vel(dynamixel::GroupBulkRead* groupbulkread);
 
     bool torque_on ();
     bool torque_off();
     
-    bool goalset(double goal, dynamixel::GroupBulkWrite* groupbulkwrite);
-    // bool readposition(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
-    bool readvelocity(dynamixel::GroupBulkRead* groupbulkread);
-
+    bool goalset(double goal);
+    bool read();
 };

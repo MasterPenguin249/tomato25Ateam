@@ -1,8 +1,21 @@
 #include "DynamixelControl/MXMotor.h"
 
-MXMotor::MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
-:id(id), porthandler(porthandler), packethandler(packethandler)
-{};
+MXMotor::MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupBulkRead* groupbulkread, dynamixel::GroupBulkWrite* groupbulkwrite)
+:id(id), porthandler(porthandler), packethandler(packethandler), groupbulkread(groupbulkread), groupbulkwrite(groupbulkwrite)
+{
+    bool dxl_addparam_result = false;
+    // velocity
+    dxl_addparam_result = groupbulkread->addParam(id, ADDR_PRESENT_VELOCITY_P2,4/*byte*/);
+    if( !dxl_addparam_result ){
+        ROS_ERROR("[id: %d]: groupBulkread addparam failed.", id);
+    }
+
+    // position
+//     dxl_addparam_result = groupbulkread->addParam(id, ADDR_PRESENT_POSITION_P2,4/*byte*/);
+//     if( !dxl_addparam_result ){
+//         ROS_ERROR("[id: %d]: groupBulkread addparam failed.", id);
+//     }
+};
 
 MXMotor::~MXMotor(){};
 
@@ -59,17 +72,6 @@ bool MXMotor::modeset(std::string mode_in)
     }
 }
 
-bool MXMotor::read_addparam_vel(dynamixel::GroupBulkRead* groupbulkread)
-{
-    bool dxl_addparam_result = false;
-    dxl_addparam_result = groupbulkread->addParam(id, ADDR_PRESENT_VELOCITY_P2,2/*byte*/);
-    if( !dxl_addparam_result ){
-        ROS_ERROR("[id: %d]: groupBulkread addparam failed.", id);
-        return false;
-    }
-    return true;
-}
-
 bool MXMotor::torque_on()
 {
     // Protocol Version Check
@@ -122,7 +124,7 @@ bool MXMotor::torque_off()
     }
 }
 
-bool MXMotor::goalset(double goal, dynamixel::GroupBulkWrite* groupbulkwrite)
+bool MXMotor::goalset(double goal)
 {
     // Add Write Group
     int16_t vel_write_data = (int)goal; // ひとまず整数値そのまま
@@ -148,19 +150,19 @@ bool MXMotor::goalset(double goal, dynamixel::GroupBulkWrite* groupbulkwrite)
     return true;
 }
 
-bool MXMotor::readvelocity(dynamixel::GroupBulkRead* groupbulkread)
+bool MXMotor::read()
 {
     bool dxl_getdata_result = false;
-    dxl_getdata_result = groupbulkread->isAvailable(id, ADDR_PRESENT_VELOCITY_P2, 2/*Byte*/);
+    dxl_getdata_result = groupbulkread->isAvailable(id, ADDR_PRESENT_VELOCITY_P2, 4/*Byte*/);
     if ( dxl_getdata_result != true )
     {
         ROS_ERROR("[id:%d]: groupBulkRead getdata failed", id);
         return false;
     }
     int16_t vel_mx_read = 0;
-    vel_mx_read = groupbulkread->getData(id, ADDR_PRESENT_VELOCITY_P2, 2/*byte*/);
+    vel_mx_read = groupbulkread->getData(id, ADDR_PRESENT_VELOCITY_P2, 4/*byte*/);
     
     current_velocity = (vel_mx_read * 0.229) /60 * 2* M_PI;
-    // ROS_INFO("get velocity : [ID:%d] -> [VELOCITY:%f]", id, current_velocity);
+    ROS_INFO("get velocity : [ID:%d] -> [VELOCITY:%f]", id, current_velocity);
     return true;
 }

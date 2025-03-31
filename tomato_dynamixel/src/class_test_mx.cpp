@@ -61,11 +61,10 @@ int main(int argc, char ** argv)
   }
 
   GroupBulkWrite groupBulkWrite(portHandler, packetHandler2);
-
   GroupBulkRead groupBulkRead(portHandler, packetHandler2);
 
   // get MX Motor Object
-  MXMotor mxmotor_10(10,portHandler, packetHandler2);
+  MXMotor mxmotor_10(10,portHandler, packetHandler2, &groupBulkRead, &groupBulkWrite);
 
   // set velocity control mode
   bool modeset = mxmotor_10.modeset("velocity control");
@@ -75,10 +74,6 @@ int main(int argc, char ** argv)
   bool torqueon =  mxmotor_10.torque_on();
   if( !torqueon ) return -1;
 
-  // Add Read Group
-  bool dxl_addparam_result = false;
-  dxl_addparam_result = mxmotor_10.read_addparam_vel(&groupBulkRead);
-
 
   while(ros::ok())
   {
@@ -87,7 +82,7 @@ int main(int argc, char ** argv)
 
     // MX velocity mode
     //Goal set
-    mxmotor_10.goalset(vel_mx_write, &groupBulkWrite);
+    mxmotor_10.goalset(vel_mx_write);
    
     // BulkWrite
     dxl_comm_result = groupBulkWrite.txPacket();
@@ -99,7 +94,7 @@ int main(int argc, char ** argv)
     if ( dxl_comm_result != COMM_SUCCESS )packetHandler2 -> getTxRxResult(dxl_comm_result);
 
     // get data
-    mxmotor_10.readvelocity(&groupBulkRead);
+    mxmotor_10.read();
     
     cycle_rate.sleep();
   }

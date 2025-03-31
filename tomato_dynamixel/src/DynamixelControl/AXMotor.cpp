@@ -1,12 +1,12 @@
 #include "DynamixelControl/AXMotor.h"
 
 
-AXMotor::AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
-:id(id), torque_limit_per(5), porthandler(porthandler), packethandler(packethandler)
+AXMotor::AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite)
+:id(id), torque_limit_per(5), porthandler(porthandler), packethandler(packethandler), groupsyncwrite(groupsyncwrite)
 {};
 
-AXMotor::AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
-:id(id), porthandler(porthandler), packethandler(packethandler)
+AXMotor::AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite )
+:id(id), porthandler(porthandler), packethandler(packethandler), groupsyncwrite(groupsyncwrite)
 {
     if( torque_limit_percent > 90){
         torque_limit_per = 90;
@@ -102,7 +102,7 @@ bool AXMotor::torque_off()
     }
 }
 
-bool  AXMotor::goalset(double goal, dynamixel::GroupSyncWrite* groupsyncwrite)  // WARNIG: this GroupSyncWrite Pointer should be Protocol 1.0. Be careful!!
+bool  AXMotor::goalset(double goal)  // WARNIG: this GroupSyncWrite Pointer should be Protocol 1.0. Be careful!!
 {
     // groupsyncwriteのオブジェクトを作成する段階でpackethandlerを指定するため、
     // ここでprotocolのバージョンを確認できない。かなり用心して使用すべし。
@@ -142,7 +142,7 @@ bool  AXMotor::goalset(double goal, dynamixel::GroupSyncWrite* groupsyncwrite)  
 
 // AXモーターはSyncReadができないのでそのまま読み取る
 
-bool AXMotor::readposition()
+bool AXMotor::read()
 {
     // Protocol Version Check
     if( protocol_version_check() )

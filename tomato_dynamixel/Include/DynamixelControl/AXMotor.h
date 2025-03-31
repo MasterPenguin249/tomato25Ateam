@@ -31,12 +31,13 @@ private:
 
     dynamixel::PortHandler* porthandler;
     dynamixel::PacketHandler* packethandler;
+    dynamixel::GroupSyncWrite* groupsyncwrite;
 
     bool protocol_version_check();
 
 public:
-    AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
-    AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler);
+    AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite);
+    AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite);
     ~AXMotor();
 
     const float protocol_version = 1.0;
@@ -48,8 +49,8 @@ public:
     bool torque_on();
     bool torque_off();
     
-    bool goalset(double goal /*[rad]*/, dynamixel::GroupSyncWrite* groupsyncwrite);
-    bool readposition();
+    bool goalset(double goal /*[rad]*/);
+    bool read();
 };
 
 // 基本は位置制御モード。CW/CCW AngleLimit の値を0にすることで無限回転モードにも可能。
