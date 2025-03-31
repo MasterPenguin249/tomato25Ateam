@@ -1,10 +1,12 @@
 #include "DynamixelControl/AXMotor.h"
 
 
-AXMotor::AXMotor(int id):id(id), torque_limit_per(5){};
+AXMotor::AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+:id(id), torque_limit_per(5), porthandler(porthandler), packethandler(packethandler)
+{};
 
-AXMotor::AXMotor(int id, unsigned int torque_limit_percent)
-:id(id)
+AXMotor::AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+:id(id), porthandler(porthandler), packethandler(packethandler)
 {
     if( torque_limit_percent > 90){
         torque_limit_per = 90;
@@ -19,7 +21,7 @@ AXMotor::AXMotor(int id, unsigned int torque_limit_percent)
 
 AXMotor::~AXMotor(){};
 
-bool AXMotor::protocol_version_check(dynamixel::PacketHandler* packethandler)
+bool AXMotor::protocol_version_check()
 {
     float ph_protocol_ver = packethandler -> getProtocolVersion();
     if( ph_protocol_ver == protocol_version ) return true;
@@ -37,10 +39,10 @@ double AXMotor::get_goal_value()
     return goal_value;
 }
 
-bool AXMotor::torque_on(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+bool AXMotor::torque_on()
 {
     // Protocol Version Check
-    if( protocol_version_check(packethandler) )
+    if( protocol_version_check() )
     {
         // Protocol check is ok!
     }
@@ -76,10 +78,10 @@ bool AXMotor::torque_on(dynamixel::PortHandler* porthandler, dynamixel::PacketHa
     }
 }
 
-bool AXMotor::torque_off(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+bool AXMotor::torque_off()
 {
     // Protocol Version Check
-    if( protocol_version_check(packethandler) )
+    if( protocol_version_check() )
     {
         // Protocol check is ok!
     }
@@ -140,10 +142,10 @@ bool  AXMotor::goalset(double goal, dynamixel::GroupSyncWrite* groupsyncwrite)  
 
 // AXモーターはSyncReadができないのでそのまま読み取る
 
-bool AXMotor::readposition(dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler)
+bool AXMotor::readposition()
 {
     // Protocol Version Check
-    if( protocol_version_check(packethandler) )
+    if( protocol_version_check() )
     {
         // Protocol check is ok!
     }

@@ -37,14 +37,14 @@ int main(int argc, char ** argv)
   }
  
   // get AX Motor Object
-  AXMotor axmotor_5(5,10);
-  AXMotor axmotor_4(4,10);
+  AXMotor axmotor_5(5,10, portHandler, packetHandler1);
+  AXMotor axmotor_4(4,10, portHandler, packetHandler1);
 
   // Torque On
-  bool torque_result = axmotor_5.torque_on(portHandler,packetHandler1);
+  bool torque_result = axmotor_5.torque_on();
   if(!torque_result) return -1;
   
-  torque_result = axmotor_4.torque_on(portHandler,packetHandler1);
+  torque_result = axmotor_4.torque_on();
   if(!torque_result) return -1;
 
 
@@ -80,8 +80,8 @@ int main(int argc, char ** argv)
     groupSyncWrite.clearParam();
 
     // Read 
-    axmotor_5.readposition(portHandler,packetHandler1);
-    axmotor_4.readposition(portHandler,packetHandler1);
+    axmotor_5.readposition();
+    axmotor_4.readposition();
 
 
     // Reflesh target
@@ -91,7 +91,8 @@ int main(int argc, char ** argv)
     cycle_rate.sleep();
   }
   
-  torque_result = axmotor_5.torque_off(portHandler,packetHandler1);
+  torque_result = axmotor_4.torque_off();
+  torque_result = axmotor_5.torque_off();
   if(!torque_result)return -1;
 
   portHandler->closePort();
