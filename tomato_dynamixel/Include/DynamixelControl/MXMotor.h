@@ -2,6 +2,7 @@
 #include <cmath>
 #include <ros/ros.h>
 #include "dynamixel_sdk/dynamixel_sdk.h"
+#include "DynamixelControl/Motor.h"
 
 /// Control table address for protocol 2 (MX, XC)
 #define ADDR_OPERATING_MODE_P2   11
@@ -29,36 +30,29 @@
 // プロトコル2.0で通信を行う
 
 
-class MXMotor
+class MXMotor : public Motor
 {
 private:
-    double current_position;    //[rad]
     double current_velocity;    //[rad/s]
-    double goal_value;          //[rad] or [rad/s] or [mA]?
     std::string mode;           //"velocity control", "current base position control"
 
-    dynamixel::PortHandler* porthandler;
-    dynamixel::PacketHandler* packethandler;
     dynamixel::GroupBulkRead* groupbulkread;
     dynamixel::GroupBulkWrite* groupbulkwrite;
-
-    bool protocol_version_check();
     
 public:
     MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupBulkRead* groupbulkread, dynamixel::GroupBulkWrite* groupbulkwrite);
     ~MXMotor();
 
-    const float protocol_version = 2.0;
-    const int id;
+    // const float protocol_version = 2.0;
 
-    double get_current_position();
+    double get_current_velocity();
     double get_goal_value();
 
-    bool modeset(std::string mode_in);
+    bool torque_on () override;
+    bool torque_off() override;
 
-    bool torque_on ();
-    bool torque_off();
-    
-    bool goalset(double goal);
-    bool read();
+    bool goalset(double goal) override;
+    bool read() override;
+
+    bool modeset(std::string mode_in);
 };

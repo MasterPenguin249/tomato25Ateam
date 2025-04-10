@@ -1,7 +1,9 @@
 #include "DynamixelControl/MXMotor.h"
 
-MXMotor::MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupBulkRead* groupbulkread, dynamixel::GroupBulkWrite* groupbulkwrite)
-:id(id), porthandler(porthandler), packethandler(packethandler), groupbulkread(groupbulkread), groupbulkwrite(groupbulkwrite)
+MXMotor::MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupBulkRead* groupbulkread, dynamixel::GroupBulkWrite* groupbulkwrite):
+    Motor(id, /*version =*/2.0, porthandler, packethandler),
+    groupbulkread(groupbulkread), 
+    groupbulkwrite(groupbulkwrite)
 {
     bool dxl_addparam_result = false;
     // velocity
@@ -19,21 +21,9 @@ MXMotor::MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketH
 
 MXMotor::~MXMotor(){};
 
-bool MXMotor::protocol_version_check()
+double MXMotor::get_current_velocity()
 {
-    float ph_protocol_ver = packethandler -> getProtocolVersion();
-    if( ph_protocol_ver == protocol_version ) return true;
-    else return false;
-}
-
-double MXMotor::get_current_position()
-{
-    return current_position;
-}
-
-double MXMotor::get_goal_value()
-{
-    return goal_value;
+    return current_velocity;
 }
 
 bool MXMotor::modeset(std::string mode_in)

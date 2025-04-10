@@ -1,12 +1,15 @@
 #include "DynamixelControl/AXMotor.h"
 
 
-AXMotor::AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite)
-:id(id), torque_limit_per(5), porthandler(porthandler), packethandler(packethandler), groupsyncwrite(groupsyncwrite)
+AXMotor::AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite):
+    Motor(id, /*version=*/1.0, porthandler, packethandler), 
+    torque_limit_per(5), 
+    groupsyncwrite(groupsyncwrite)
 {};
 
-AXMotor::AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite )
-:id(id), porthandler(porthandler), packethandler(packethandler), groupsyncwrite(groupsyncwrite)
+AXMotor::AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite ):
+    Motor(id, /*version=*/1.0, porthandler, packethandler), 
+    groupsyncwrite(groupsyncwrite)
 {
     if( torque_limit_percent > 90){
         torque_limit_per = 90;
@@ -21,23 +24,11 @@ AXMotor::AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandl
 
 AXMotor::~AXMotor(){};
 
-bool AXMotor::protocol_version_check()
-{
-    float ph_protocol_ver = packethandler -> getProtocolVersion();
-    if( ph_protocol_ver == protocol_version ) return true;
-    else return false;
-}
-
-
 double AXMotor::get_current_position()
 {
     return current_position;
 }
 
-double AXMotor::get_goal_value()
-{
-    return goal_value;
-}
 
 bool AXMotor::torque_on()
 {
@@ -102,7 +93,7 @@ bool AXMotor::torque_off()
     }
 }
 
-bool  AXMotor::goalset(double goal)  // WARNIG: this GroupSyncWrite Pointer should be Protocol 1.0. Be careful!!
+bool  AXMotor::goalset(double goal) // WARNIG: this GroupSyncWrite Pointer should be Protocol 1.0. Be careful!!
 {
     // groupsyncwriteのオブジェクトを作成する段階でpackethandlerを指定するため、
     // ここでprotocolのバージョンを確認できない。かなり用心して使用すべし。

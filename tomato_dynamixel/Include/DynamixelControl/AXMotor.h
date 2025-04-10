@@ -2,6 +2,7 @@
 #include <cmath>
 #include <ros/ros.h>
 #include "dynamixel_sdk/dynamixel_sdk.h"
+#include "DynamixelControl/Motor.h"
 
 // Control table address for protocol 1 (AX)
 #define ADDR_TORQUE_ENABLE_P1    24
@@ -22,35 +23,28 @@
 
 
 
-class AXMotor
+class AXMotor : public Motor
 {
 private:
     double current_position;    // [rad]
-    double goal_value;          // [rad] (or [rad/s] ?)
     unsigned int torque_limit_per;
 
-    dynamixel::PortHandler* porthandler;
-    dynamixel::PacketHandler* packethandler;
     dynamixel::GroupSyncWrite* groupsyncwrite;
-
-    bool protocol_version_check();
 
 public:
     AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite);
     AXMotor(int id, unsigned int torque_limit_percent, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, dynamixel::GroupSyncWrite* groupsyncwrite);
     ~AXMotor();
 
-    const float protocol_version = 1.0;
-    const int id;
+    // const float protocol_version = 1.0;
+    
+    bool torque_on () override;
+    bool torque_off() override;
+    
+    bool goalset(double goal /*[rad]*/) override;
+    bool read() override;
 
     double get_current_position();
-    double get_goal_value();
-    
-    bool torque_on();
-    bool torque_off();
-    
-    bool goalset(double goal /*[rad]*/);
-    bool read();
 };
 
 // 基本は位置制御モード。CW/CCW AngleLimit の値を0にすることで無限回転モードにも可能。
