@@ -14,13 +14,6 @@
 #define ADDR_PRESENT_VELOCITY_P2 128
 #define ADDR_PRESENT_POSITION_P2 132
 
-// Protocol version
-#define PROTOCOL_VERSION1      1.0
-#define PROTOCOL_VERSION2      2.0
-
-// Default setting
-#define BAUDRATE              1000000
-
 #define CURRENT_MODE          0
 #define VELOCITY_MODE         1
 #define POSITION_MODE         3
