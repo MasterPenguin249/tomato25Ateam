@@ -1,4 +1,9 @@
+#ifndef MOTOR_H
+#define MOTOR_H
+
 #include "dynamixel_sdk/dynamixel_sdk.h"
+
+#define BAUDRATE              1000000
 
 
 class Motor
@@ -17,6 +22,7 @@ public:
     const int id;
 
     double get_goal_value();
+    virtual double get_current_value() = 0;
     
     virtual bool torque_on() = 0;
     virtual bool torque_off() = 0;
@@ -24,3 +30,5 @@ public:
     virtual bool goalset(double goal /*[rad]*/) = 0;
     virtual bool read() = 0;
 };
+
+#endif

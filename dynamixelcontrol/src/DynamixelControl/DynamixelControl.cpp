@@ -14,7 +14,7 @@ DynamixelControl::DynamixelControl(std::string dev_name):
     }
     else
     {
-        state = "Constructor: failed to open the port!"
+        state = "Constructor: failed to open the port!";
         ready_to_use = false;
         disp_trouble();
         return;
@@ -26,21 +26,21 @@ DynamixelControl::DynamixelControl(std::string dev_name):
     }
     else
     {
-        state = "Constructor: failed to set the baudrate!"
+        state = "Constructor: failed to set the baudrate!";
         ready_to_use = false;
         disp_trouble();
         return;
     }
 
-    groupsyncwrite_p1 = std::make_unique<dynamixel::GroupSyncWrite>(portHandler, packetHandler_p1, ADDR_GOAL_POSITION_P1, 2/*Byte*/);
-    groupbulkread_p2  = std::make_unique<dynamixel::GroupBulkRead> (portHandler, packetHandler_p2);
-    groupbulkwrite_p2 = std::make_unique<dynamixel::GroupBulkWrite>(portHandler, packetHandler_p2);
-};
+    groupsyncwrite_p1 = std::make_shared<dynamixel::GroupSyncWrite>(portHandler, packetHandler_p1, ADDR_GOAL_POSITION_P1, 2/*Byte*/);
+    groupbulkread_p2  = std::make_shared<dynamixel::GroupBulkRead> (portHandler, packetHandler_p2);
+    groupbulkwrite_p2 = std::make_shared<dynamixel::GroupBulkWrite>(portHandler, packetHandler_p2);
+}
 
 DynamixelControl::~DynamixelControl()
 {
-
-};
+    portHandler->closePort();
+}
 
 bool DynamixelControl::addMotor(std::string type, int id)
 {
@@ -48,12 +48,12 @@ bool DynamixelControl::addMotor(std::string type, int id)
 
     if(type == "AX")
     {
-        motorlist.pushback( std::make_unique< AXMotor >(id, portHandler, packetHandler_p1, groupsyncwrite_p1.get()) );
+        motorlist.push_back( std::make_unique< AXMotor >(id, AX_TORQUE_LIMIT_DEFAULT, portHandler, packetHandler_p1, groupsyncwrite_p1 ));
         return true;
     }
     else if (type == "MX")
     {
-        motorlist.pushback( std::make_unique< MXMotor >(id, porthandler, packetHandler_p2, groupbulkread_p2.get(), groupbulkwrite_p2.get()) );
+        motorlist.push_back( std::make_unique< MXMotor >(id, portHandler, packetHandler_p2, groupbulkread_p2, groupbulkwrite_p2) );
         return true;
     }
     
@@ -94,21 +94,26 @@ bool DynamixelControl::torque_off()
     return result;
 }
 
-bool DynamixelControl::setTarget(std::vector<double> target_values)
+bool DynamixelControl::setTarget(const std::vector<double> &target_values)
 {
     if( !ready_to_use ) return false;
 
     //この書き方ではVectorの順番を意識して合わせなければならない.
-    //それは使いづらくないか？
 
     bool result = false;
-    if( target_values.size() = motorlist.size() )
+    if( target_values.size() == motorlist.size() )
     {
         for(int i=0; i<motorlist.size(); i++)
         {
             result =  motorlist[i] -> goalset(target_values[i]);
             if( result == false ) break;
         }
+    }
+    else
+    {
+        state = "setTarget: size of target is different from motor list's one.";
+        disp_trouble();
+        return false;
     }
     state = "setTarget: failed to set the targtet value";
     disp_trouble();
@@ -117,13 +122,44 @@ bool DynamixelControl::setTarget(std::vector<double> target_values)
 
 bool DynamixelControl::write()
 {
+    if( !ready_to_use ) return false;
 
+    int dxl_comm_result = COMM_TX_FAIL;
+
+    // Protocol 1
+    dxl_comm_result = groupsyncwrite_p1 -> txPacket();
+    if( dxl_comm_result != COMM_SUCCESS ){
+        packetHandler_p1 -> getTxRxResult(dxl_comm_result);
+        state = "write: Failed to syncwrite";
+        disp_trouble();
+    }
+    // else if (dxl_error != 0)
+    // {
+    //     packetHandler1->getRxPacketError(dxl_error);
+    // }
+    groupsyncwrite_p1 -> clearParam();
+
+    // Protocol 2
+    dxl_comm_result = groupbulkwrite_p2 -> txPacket();
+    if ( dxl_comm_result != COMM_SUCCESS )
+    {
+        packetHandler_p2 -> getTxRxResult(dxl_comm_result);
+        state = "write: Failed to syncwrite";
+        disp_trouble();
+    }
+    groupbulkwrite_p2 -> clearParam();
+    return true;
 }
 
 bool DynamixelControl::read()
 {
     if( !ready_to_use ) return false;
 
+    // Protocol 2.0
+    int comm_result = groupbulkread_p2 -> txRxPacket();
+    if (comm_result != COMM_SUCCESS )packetHandler_p2 -> getTxRxResult(comm_result);
+
+    // Protocol 1.0 & 2.0
     bool result = false;
     for( auto& motor : motorlist)   // 範囲for文
     {
@@ -131,12 +167,29 @@ bool DynamixelControl::read()
         if(result == false) break;
     }
 
+
     state = "read: failed to read values";
     disp_trouble();
     return result;
 }
 
-bool DynamixelControl::getCurrentvalues(std::vector<DynamixelControl::CurrentValue> &current_values)
+bool DynamixelControl::getCurrentvalues(std::vector<double> &current_values)
 {
+    if(motorlist.size() > current_values.size()) 
+    {
+        state = "getCurrentvalues: given vector is shorter than motors.";
+        disp_trouble();
+        return false;
+    }
 
+    for(int i=0; i<motorlist.size(); i++)
+    {
+        current_values[i] = motorlist[i]->get_current_value();
+    }
+    return true;
+}
+
+void DynamixelControl::disp_trouble()
+{
+    return;
 }

@@ -1,4 +1,5 @@
 #include <cmath> 
+#include <memory>
 #include <ros/ros.h>
 #include <geometry_msgs/PointStamped.h>
 #include <sensor_msgs/Joy.h>
@@ -21,18 +22,17 @@ PacketHandler * packetHandler2;
 
 int dxl_comm_result = COMM_TX_FAIL;
 
-int16_t vel_mx_write = 0; // -285 ~ 285
-
-float scale_mx = 300.0;
+double vel_mx_write = 0;
+float scale_mx = 6.0;
 
 void joyCallback(const sensor_msgs::Joy& msg)
 {
   vel_mx_write = msg.axes[1]*scale_mx;      
 
-  if (vel_mx_write > 250){
-    vel_mx_write = 250;
-  }else if (vel_mx_write  < -250) {
-    vel_mx_write = -250;
+  if (vel_mx_write > 10){
+    vel_mx_write = 10;
+  }else if (vel_mx_write  < -10) {
+    vel_mx_write = -10;
   }
 }
 
@@ -60,15 +60,11 @@ int main(int argc, char ** argv)
     return -1;
   }
 
-  GroupBulkWrite groupBulkWrite(portHandler, packetHandler2);
-  GroupBulkRead groupBulkRead(portHandler, packetHandler2);
+  std::shared_ptr<GroupBulkWrite> groupBulkWrite = std::make_shared<GroupBulkWrite>(portHandler, packetHandler2);
+  std::shared_ptr<GroupBulkRead> groupBulkRead = std::make_shared<GroupBulkRead>(portHandler, packetHandler2);
 
   // get MX Motor Object
-  MXMotor mxmotor_10(10,portHandler, packetHandler2, &groupBulkRead, &groupBulkWrite);
-
-  // set velocity control mode
-  bool modeset = mxmotor_10.modeset("velocity control");
-  if(!modeset) return -1;
+  MXMotor mxmotor_10(10,portHandler, packetHandler2, groupBulkRead, groupBulkWrite);
 
   // torque on
   bool torqueon =  mxmotor_10.torque_on();
@@ -85,12 +81,12 @@ int main(int argc, char ** argv)
     mxmotor_10.goalset(vel_mx_write);
    
     // BulkWrite
-    dxl_comm_result = groupBulkWrite.txPacket();
+    dxl_comm_result = groupBulkWrite->txPacket();
     if ( dxl_comm_result != COMM_SUCCESS )packetHandler2 -> getTxRxResult(dxl_comm_result);
-    groupBulkWrite.clearParam();
+    groupBulkWrite->clearParam();
 
     // BulkRead
-    dxl_comm_result = groupBulkRead.txRxPacket();
+    dxl_comm_result = groupBulkRead->txRxPacket();
     if ( dxl_comm_result != COMM_SUCCESS )packetHandler2 -> getTxRxResult(dxl_comm_result);
 
     // get data

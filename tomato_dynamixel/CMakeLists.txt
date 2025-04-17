@@ -32,15 +32,3 @@ target_link_libraries(ax_joy ${catkin_LIBRARIES})
 
 add_executable(ax_mx_joy src/ax_mx_joy.cpp)
 target_link_libraries(ax_mx_joy ${catkin_LIBRARIES})
-
-add_executable(class_test_ax 
-src/class_test_ax.cpp
-src/DynamixelControl/Motor.cpp
-src/DynamixelControl/AXMotor.cpp)
-target_link_libraries(class_test_ax ${catkin_LIBRARIES})
-
-add_executable(class_test_mx
-src/class_test_mx.cpp
-src/DynamixelControl/Motor.cpp
-src/DynamixelControl/MXMotor.cpp)
-target_link_libraries(class_test_mx ${catkin_LIBRARIES})

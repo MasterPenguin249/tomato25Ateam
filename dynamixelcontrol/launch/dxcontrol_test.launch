@@ -1,0 +1,6 @@
+<launch>
+	<node name="DXL_motor_control" pkg="dynamixelcontrol" type="dxcontrol_test" output="screen">
+		<param name="dev" value="/dev/ttyUSB0"/>
+	</node> 
+</launch>
+
