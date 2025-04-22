@@ -12,6 +12,7 @@ catkin_package(
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  Include
 )
 
 add_executable(mx_pos src/mx_pos.cpp)
