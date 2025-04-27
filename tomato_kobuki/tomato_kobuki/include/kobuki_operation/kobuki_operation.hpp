@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <termios.h>
 #include <fcntl.h>
-#include<sensor_msgs/Joy.h>
+#include <sensor_msgs/Joy.h>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <kobuki_msgs/BumperEvent.h>
@@ -15,7 +15,7 @@ public:
     void spin();
 private:
     void joy_callback(const sensor_msgs::Joy &joy_msg);
-    void kobukiMove(double speed, double turn);
+    void kobukiMove(double speed);
     void kobukiKeep(double duration, bool exit_w_interrupt = true);
 
     void kobukiStop();
