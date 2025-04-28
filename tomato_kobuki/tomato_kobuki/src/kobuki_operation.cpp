@@ -5,28 +5,29 @@ KobukiOperation::KobukiOperation(double freq) :
     _nh(),
     _freq(freq),
     _update_rate(freq),
-    _control{0},
-    _speed_acc(0.1),
-    _turn_acc(0.6)
+    _control{0}
+    // _speed_acc(0.1),
+    // _turn_acc(0.6)
+
 {
     _joy_sub = _nh.subscribe("joy",10,&KobukiOperation::joy_callback,this);
-
     _kobuki_pub = _nh.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity",1);   
 }
 
 void KobukiOperation::joy_callback(const sensor_msgs::Joy &joy_msg)
 {
     double _g_speed = 0.2;
-    double _g_turn = 1;
     double motion_v_tmp = joy_msg.axes[7] * _g_speed;
-    double rotation_v_tmp = joy_msg.axes[6] * _g_turn;
 
-    if( (abs(joy_msg.axes[6])<=0.1)&(abs(joy_msg.axes[7])<=0.1) ){
+    // double _g_turn = 1;
+    // double rotation_v_tmp = _____;
+
+    if( abs(joy_msg.axes[7])<=0.1 ){
         std::cout << "Stop" << std::endl;
         kobukiStop();
     }else{
         std::cout << "Move" << std::endl;
-        kobukiMove(motion_v_tmp, rotation_v_tmp);
+        kobukiMove(motion_v_tmp);
     }
 }
 
@@ -59,17 +60,15 @@ void KobukiOperation::spin()
 }
 
 
-void KobukiOperation::kobukiMove(double speed, double turn)
+void KobukiOperation::kobukiMove(double speed)
 {
     _control.target_speed = speed;
-    _control.target_turn = turn;
     kobukiInterpolate();
 }
 
 void KobukiOperation::kobukiStop()
 {
     _control.target_speed = 0.0;
-    _control.target_turn = 0.0;
     kobukiInterpolate();
 }
 
@@ -83,10 +82,9 @@ void KobukiOperation::normalOperation()
 void KobukiOperation::kobukiInterpolate()
 {
     _control.control_speed = _control.target_speed;
-    _control.control_turn = _control.target_turn;
 
     geometry_msgs::Twist command;
     command.linear.x = _control.control_speed;
-    command.angular.z = _control.control_turn;
+    command.angular.z = 0.0;
     _kobuki_pub.publish(command);
 }
