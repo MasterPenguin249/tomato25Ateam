@@ -5,9 +5,9 @@ KobukiOperation::KobukiOperation(double freq) :
     _nh(),
     _freq(freq),
     _update_rate(freq),
-    _control{0}
-    // _speed_acc(0.1),
-    // _turn_acc(0.6)
+    _control{0},
+    _speed_acc(0.1),
+    _turn_acc(0.6)
 
 {
     _joy_sub = _nh.subscribe("joy",10,&KobukiOperation::joy_callback,this);
