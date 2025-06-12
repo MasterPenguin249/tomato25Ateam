@@ -19,6 +19,7 @@
 float _gain_ax = 4.0;
 float vel_ax_x = 0.0;
 float vel_ax_y = 0.0;
+
 double tomato_x = 9;
 double tomato_y = 9;
 double speed_x = 0.02;
@@ -30,17 +31,17 @@ double opened = rad(-10);
 double l = 9; // cm
 
 
-uint8_t dxl_error = 0;
-int dxl_comm_result = COMM_TX_FAIL;
-uint16_t position_ax_read_1 = 0;//stage R/L
+// uint8_t dxl_error = 0;
+// int dxl_comm_result = COMM_TX_FAIL;
+// uint16_t position_ax_read_1 = 0;//stage R/L
 // uint16_t position_ax_read_2 = 0;//stage F/B
-uint16_t position_ax_write_1 = 512; // 0~1023
+// uint16_t position_ax_write_1 = 512; // 0~1023
 // uint16_t position_ax_write_2 = 512; // 0~1023
 
-int16_t vel_mx_read = 0;
+// int16_t vel_mx_read = 0;
 int16_t vel_mx_write= 0; // -285 ~ 285
 
-float scale_ax = 0.08;//4.0
+float scale_ax = 0.08;
 float vel_ax_1 = 0.0;
 float vel_ax_2 = 0.0;
 
@@ -95,7 +96,6 @@ void joyCallback(const sensor_msgs::Joy& msg)
 //     tomato_y = ((bbox.x_min + bbox.x_max) / 2.0 - 300)/600 * 15 / 17 * distance + 9;
 //     ROS_INFO("TOMATOOOOOO: [%f, %f]", tomato_x, tomato_y);
 //   }
-
 // }
 
 // square
@@ -121,7 +121,6 @@ void limitcheck(std::vector<double> &target_val){
     if(target_val[i] < limits[i].first) target_val[i] = limits[i].first;
     else if (target_val[i] > limits[i].second) target_val[i] = limits[i].second;
   }
-
 }
 
 // //Runge-Kutta
@@ -228,7 +227,6 @@ int main(int argc, char ** argv)
   dynamixelcontrol.addMotor("MX", 10);
   dynamixelcontrol.addMotor("AX", 1);   //stage R/L
   
-
   dynamixelcontrol.torque_on();
 
   std::vector<double> target_positions{rad(-5), rad(85), opened, 0, rad(75)};
