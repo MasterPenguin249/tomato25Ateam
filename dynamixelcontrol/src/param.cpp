@@ -10,25 +10,42 @@
 #include <yolo_detection/BoundingBoxArray.h>
 #include <yolo_detection/BoundingBox.h>
 
-
-#define BAUDRATE              1000000
+#define NODE_FREQUENCY        200
 
 #define f1(x, y) -(cos(x) / cos(y))
 #define f2(x, y) (sin(x) / sin(y))
 #define rad(x) (x * M_PI/180)
 
 float _gain_ax = 4.0;
-float vel_axx = 0.0;
-float vel_axy = 0.0;
+float vel_ax_x = 0.0;
+float vel_ax_y = 0.0;
 double tomato_x = 9;
 double tomato_y = 9;
-double speedx = 0.02;
-double speedy = 0.02;
+double speed_x = 0.02;
+double speed_y = 0.02;
 double mx_speed = 0.0;
 bool opening = true;
 double closed = rad(-50);
 double opened = rad(-10);
 double l = 9; // cm
+
+
+uint8_t dxl_error = 0;
+int dxl_comm_result = COMM_TX_FAIL;
+uint16_t position_ax_read_1 = 0;//stage R/L
+// uint16_t position_ax_read_2 = 0;//stage F/B
+uint16_t position_ax_write_1 = 512; // 0~1023
+// uint16_t position_ax_write_2 = 512; // 0~1023
+
+int16_t vel_mx_read = 0;
+int16_t vel_mx_write= 0; // -285 ~ 285
+
+float scale_ax = 0.1;//4.0
+float vel_ax_1 = 0.0;
+float vel_ax_2 = 0.0;
+
+float scale_mx = 30.0;
+float vel_mx = 0.0;
 
 // example range
 // y(250, 220) minus 150-> (100, 70)?? (because the range is 0,300 not 0,360)
@@ -37,29 +54,41 @@ double l = 9; // cm
 
 void joyCallback(const sensor_msgs::Joy& msg)
 {
-  vel_axx = msg.axes[4]*_gain_ax;
-  vel_axy = msg.axes[7]*_gain_ax;
+  vel_ax_1 = msg.axes[6]*scale_ax;
+
+  vel_ax_x = msg.axes[4]*_gain_ax;
+  vel_ax_y = msg.axes[7]*_gain_ax;
   opening = msg.buttons[5] == 0;
+
+  if(msg.buttons[3]==1){
+    vel_mx_write= msg.buttons[3]*scale_mx;    
+  }
+  else if(msg.buttons[0]==1){
+    vel_mx_write= -msg.buttons[0]*scale_mx;
+  }
+  else{
+    vel_mx_write=0;
+  }
 
   ROS_INFO("%d", msg.buttons[0]);
 }
 
-void bboxCallback(const yolo_detection::BoundingBoxArray::ConstPtr& msg)
-{
-  // Process each bounding box
-  for (size_t i = 0; i < msg->bounding_boxes.size(); ++i)
-  {
-    const yolo_detection::BoundingBox& bbox = msg->bounding_boxes[i];
-    double distance = 2.8/((bbox.x_max - bbox.x_min) + (bbox.y_max - bbox.y_min))/2.0 *3111;
-    if(bbox.class_name != "tomato"){
-      break;
-    }
-    tomato_x = distance - 7;
-    tomato_y = ((bbox.x_min + bbox.x_max) / 2.0 - 300)/600 * 15 / 17 * distance + 9;
-    ROS_INFO("TOMATOOOOOO: [%f, %f]", tomato_x, tomato_y);
-  }
+// void bboxCallback(const yolo_detection::BoundingBoxArray::ConstPtr& msg)
+// {
+//   // Process each bounding box
+//   for (size_t i = 0; i < msg->bounding_boxes.size(); ++i)
+//   {
+//     const yolo_detection::BoundingBox& bbox = msg->bounding_boxes[i];
+//     double distance = 2.8/((bbox.x_max - bbox.x_min) + (bbox.y_max - bbox.y_min))/2.0 *3111;
+//     if(bbox.class_name != "tomato"){
+//       break;
+//     }
+//     tomato_x = distance - 7;
+//     tomato_y = ((bbox.x_min + bbox.x_max) / 2.0 - 300)/600 * 15 / 17 * distance + 9;
+//     ROS_INFO("TOMATOOOOOO: [%f, %f]", tomato_x, tomato_y);
+//   }
 
-}
+// }
 
 // square
 std::vector<std::pair<double, double>> square{
@@ -75,7 +104,9 @@ void limitcheck(std::vector<double> &target_val){
   std::vector<std::pair<double, double>> limits = {
     {rad(-70), rad(80)},
     {rad(-target_val[0]+10), rad(-target_val[0]+130)},
-    {rad(-150), rad(150)}
+    {rad(-150), rad(150)},
+    {-100, 100},
+    {rad(30), rad(120)}
   };
   // gatekeep
   for(int i = 0; i < target_val.size(); i++){
@@ -113,25 +144,24 @@ void go_to(double _x, double _y, std::vector<double> &target_val){
   ROS_INFO("goal: [%f, %f]", _x, _y);
 
   ROS_INFO("goal(theta): [%f, %f]", goal[0]*180/M_PI, goal[1]*180/M_PI);
-  if(target_val[0] < goal[0]) target_val[0] += speedx;
-  else if(target_val[0] > goal[0]) target_val[0] -= speedx;
-  if(target_val[1] < goal[1]) target_val[1] += speedy;
-  else if(target_val[1] > goal[1]) target_val[1] -= speedy;
-  limitcheck(target_val);
+  if(target_val[0] < goal[0]) target_val[0] += speed_x;
+  else if(target_val[0] > goal[0]) target_val[0] -= speed_x;
+  if(target_val[1] < goal[1]) target_val[1] += speed_y;
+  else if(target_val[1] > goal[1]) target_val[1] -= speed_y;
 }
 
 void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   ROS_INFO("current value: [%f], [%f]", theta[0], theta[1]);
   static double t = 0;
-  double ratiox = abs(vel_axx)/_gain_ax;
-  double ratioy = abs(vel_axy)/_gain_ax;
-  double signx = vel_axx != 0? vel_axx/abs(vel_axx): 1;
-  double signy = vel_axy != 0? vel_axy/abs(vel_axy): 1;
+  double ratiox = abs(vel_ax_x)/_gain_ax;
+  double ratioy = abs(vel_ax_y)/_gain_ax;
+  double signx = vel_ax_x != 0? vel_ax_x/abs(vel_ax_x): 1;
+  double signy = vel_ax_y != 0? vel_ax_y/abs(vel_ax_y): 1;
   double x = l*(sin(theta[0]) + sin(theta[1]));
   double y = l*(cos(theta[0]) - cos(theta[1]));
   ROS_INFO("COORDS: [%f, %f]", x, y);
-  double dtheta1 = signx * speedx;//x_dot/l*(cos(theta[0])- sin(theta[0])/tan(theta[1]));
-  double dtheta2 = signy * speedy;
+  double dtheta1 = signx * speed_x;//x_dot/l*(cos(theta[0])- sin(theta[0])/tan(theta[1]));
+  double dtheta2 = signy * speed_y;
 
   // joy stick control
   // TODO use runge-kutta. (p.n never mind runge-kutta is actually worse)
@@ -139,18 +169,16 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
     target_val[0] += dtheta1 ; //radians, most likely
     target_val[1] += dtheta1 * sin(theta[0])/sin(theta[1]);
     //solveRK4(theta[0], theta[1], dtheta1, "dtheta2");
-    limitcheck(target_val);
     t = 0;
   }
   else if(ratioy > 0.8){ 
     target_val[1] += dtheta2;
     target_val[0] += -dtheta2 * cos(theta[1])/cos(theta[0]);
     // solveRK4(theta[1], theta[0], dtheta2, "dtheta1");
-    limitcheck(target_val);
     t = 0;
   }
   // self 
-  else if(ratiox < 0.8 && ratioy < 0.8 && t > 4){
+  else if(ratiox < 0.8 && ratioy < 0.8 && t > 10000){
     //double _x = farstraight[point].first;
     //double _y = farstraight[point].second;
     go_to(tomato_x, tomato_y, target_val);
@@ -161,11 +189,14 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   }
 
   target_val[2] = opening ? opened: closed;
+  target_val[3] = vel_mx_write;
+  target_val[4] += vel_ax_1; 
   
 
   ROS_INFO("target values: [%f, %f]", target_val[0], target_val[1]);
   ROS_INFO("t: %f", t);
   t += 0.02;
+  limitcheck(target_val);
 }
 
 int main(int argc, char ** argv)
@@ -176,7 +207,7 @@ int main(int argc, char ** argv)
   ros::NodeHandle pnh("~");
   ros::Rate cycle_rate(500);
   ros::Subscriber subscriber = nh.subscribe("joy", 1, joyCallback);
-  ros::Subscriber sub = nh.subscribe<yolo_detection::BoundingBoxArray>("tomato_detections", 1, bboxCallback);
+  //ros::Subscriber sub = nh.subscribe<yolo_detection::BoundingBoxArray>("tomato_detections", 1, joyCallback);
 
   std::string dev_name;
   pnh.param<std::string>("dev", dev_name, "/dev/ttyUSB0");
@@ -185,12 +216,15 @@ int main(int argc, char ** argv)
   // add motors
   dynamixelcontrol.addMotor("AX", 5);
   dynamixelcontrol.addMotor("AX", 4);
-  dynamixelcontrol.addMotor("AX", 3);// someid
+  dynamixelcontrol.addMotor("AX", 3);
+  dynamixelcontrol.addMotor("MX", 10);
+  dynamixelcontrol.addMotor("AX", 1);   //stage R/L
+  
 
   dynamixelcontrol.torque_on();
 
-  std::vector<double> target_positions{rad(-5), rad(85), opened};
-  std::vector<double> current_values(3);
+  std::vector<double> target_positions{rad(-5), rad(85), opened, 0, rad(75)};
+  std::vector<double> current_values(5);
 
   while(ros::ok())
   {

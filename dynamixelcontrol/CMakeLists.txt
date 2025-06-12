@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamixel_sdk
   roscpp
   sensor_msgs
+  tomato_dynamixel
   yolo_detection
 )
 
@@ -12,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES dynamixelcontrol
-  CATKIN_DEPENDS dynamixel_sdk roscpp sensor_msgs yolo_detection
+  CATKIN_DEPENDS dynamixel_sdk roscpp sensor_msgs tomato_dynamixel yolo_detection
 #  DEPENDS system_lib
 )
 
@@ -48,3 +49,6 @@ src/DynamixelControl/AXMotor.cpp
 src/DynamixelControl/MXMotor.cpp
 src/DynamixelControl/DynamixelControl.cpp)
 target_link_libraries(param ${catkin_LIBRARIES})
+
+# add_executable(ax_mx_joy src/ax_mx_joy.cpp)
+# target_link_libraries(ax_mx_joy ${catkin_LIBRARIES})
