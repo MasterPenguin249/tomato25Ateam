@@ -124,23 +124,23 @@ void limitcheck(std::vector<double> &target_val){
 
 }
 
-//Runge-Kutta
-double solveRK4(double &x, double &y, double &h, std::string mode ){
-  if(mode == "dtheta1"){
-    double k1 = h * f1(x, y);
-    double k2 = h * f1(x + 0.5*h, y + 0.5*k1);
-    double k3 = h * f1(x + 0.5*h, y + 0.5*k2);
-    double k4 = h * f1(x + h, y + k3);
-    return 1/6*(k1 + 2*k2 + 2*k3 + k4);
-  }
-  if(mode == "dtheta2"){
-    double k1 = h * f2(x, y);
-    double k2 = h * f2(x + 0.5*h, y + 0.5*k1);
-    double k3 = h * f2(x + 0.5*h, y + 0.5*k2);
-    double k4 = h * f2(x + h, y + k3);
-    return 1/6*(k1 + 2*k2 + 2*k3 + k4);
-  }
-}
+// //Runge-Kutta
+// double solveRK4(double &x, double &y, double &h, std::string mode ){
+//   if(mode == "dtheta1"){
+//     double k1 = h * f1(x, y);
+//     double k2 = h * f1(x + 0.5*h, y + 0.5*k1);
+//     double k3 = h * f1(x + 0.5*h, y + 0.5*k2);
+//     double k4 = h * f1(x + h, y + k3);
+//     return 1/6*(k1 + 2*k2 + 2*k3 + k4);
+//   }
+//   if(mode == "dtheta2"){
+//     double k1 = h * f2(x, y);
+//     double k2 = h * f2(x + 0.5*h, y + 0.5*k1);
+//     double k3 = h * f2(x + 0.5*h, y + 0.5*k2);
+//     double k4 = h * f2(x + h, y + k3);
+//     return 1/6*(k1 + 2*k2 + 2*k3 + k4);
+//   }
+// }
 
 // insert coordinates, arm goes there
 void go_to(double _x, double _y, std::vector<double> &target_val){
