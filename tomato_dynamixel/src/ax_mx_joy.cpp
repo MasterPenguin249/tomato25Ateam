@@ -29,9 +29,9 @@ using namespace dynamixel;
 // Default setting
 #define DXL_AX1_ID            1
 #define DXL_AX2_ID            2
-#define DXL_AX3_ID            3
-#define DXL_AX4_ID            4
-#define DXL_AX5_ID            5
+// #define DXL_AX3_ID            3
+// #define DXL_AX4_ID            4
+// #define DXL_AX5_ID            5
 #define DXL_MX_ID             10
 #define DXL_XC_ID             20
 #define BAUDRATE              1000000
@@ -48,28 +48,40 @@ PacketHandler * packetHandler2;
 
 uint8_t dxl_error = 0;
 int dxl_comm_result = COMM_TX_FAIL;
-uint16_t position_ax_read = 0;
-uint16_t position_ax_write = 512; // 0~1023
+uint16_t position_ax_1_read = 0;
+uint16_t position_ax_2_read = 0;
+uint16_t position_ax_1_write = 512; // 0~1023
+uint16_t position_ax_2_write = 512;
 
 int16_t vel_mx_read = 0;
 int16_t vel_mx_write = 0; // -285 ~ 285
 
 float scale_ax = 4.0;
-float vel_ax = 0.0;
+float vel_ax_1 = 0.0;
+float vel_ax_2 = 0.0;
 
 float scale_mx = 300.0;
 float vel_mx = 0.0;
 
 void joyCallback(const sensor_msgs::Joy& msg)
 {
-  vel_ax = msg.axes[0]*scale_ax;
-  vel_mx_write = msg.axes[1]*scale_mx;      
-
-  if (vel_mx_write > 250){
-    vel_mx_write = 250;
-  }else if (vel_mx_write  < -250) {
-    vel_mx_write = -250;
+  vel_ax_1 = msg.axes[6]*scale_ax;//十字：横
+  vel_ax_2 = msg.axes[7]*scale_ax;//十字：縦
+  if(msg.buttons[3]==1){
+    vel_mx_write = msg.buttons[3]*scale_mx;
   }
+  if(msg.buttons[0]==1){
+    vel_mx_write = - msg.buttons[0]*scale_mx;
+  }
+  else{
+    vel_mx_write = 0;
+  }
+
+  // if (vel_mx_write > 250){
+  //   vel_mx_write = 250;
+  // }else if (vel_mx_write  < -250) {
+  //   vel_mx_write = -250;
+  // }
 }
 
 int main(int argc, char ** argv)
@@ -96,8 +108,9 @@ int main(int argc, char ** argv)
     ROS_ERROR("Failed to set the baudrate!");
     return -1;
   }
-
+  //torque ON
   dxl_comm_result = packetHandler1->write1ByteTxRx(portHandler, DXL_AX1_ID, ADDR_TORQUE_ENABLE_P1, 1, &dxl_error);
+  dx2_comm_result = packetHandler1->write1ByteTxRx(portHandler, DXL_AX2_ID, ADDR_TORQUE_ENABLE_P1, 2, &dxl_error);
   if (dxl_comm_result == COMM_SUCCESS) {
     //ROS_INFO("Success to enable torque for Dynamixel ID %d", DXL_AX1_ID); 
   }else{
@@ -131,18 +144,21 @@ int main(int argc, char ** argv)
     dxl_comm_result = COMM_TX_FAIL;
     
     ///* AX position mode
-    dxl_comm_result = packetHandler1->write2ByteTxRx(portHandler, DXL_AX1_ID, ADDR_GOAL_POSITION_P1, position_ax_write, &dxl_error);
+    dxl_comm_result = packetHandler1->write2ByteTxRx(portHandler, DXL_AX1_ID, ADDR_GOAL_POSITION_P1, position_ax_1_write, &dxl_error);
+    dxl_comm_result = packetHandler1->write2ByteTxRx(portHandler, DXL_AX2_ID, ADDR_GOAL_POSITION_P2, position_ax_2_write, &dxl_error);
     if (dxl_comm_result == COMM_SUCCESS) {
       //ROS_INFO("setPosition : [ID:%d] [POSITION:%d]", DXL_AX1_ID, position_write);
     } else {
       ROS_ERROR("Failed to set position! Result: %d", dxl_comm_result);
     }
      
-    dxl_comm_result = packetHandler1->read2ByteTxRx(portHandler, DXL_AX1_ID, ADDR_PRESENT_POSITION_P1, (uint16_t *)&position_ax_read, &dxl_error);
-    if (dxl_comm_result == COMM_SUCCESS)
-    {
+    dxl_comm_result = packetHandler1->read2ByteTxRx(portHandler, DXL_AX1_ID, ADDR_PRESENT_POSITION_P1, (uint16_t *)&position_ax_1_read, &dxl_error);
+    dxl_comm_result = packetHandler1->read2ByteTxRx(portHandler, DXL_AX2_ID, ADDR_PRESENT_POSITION_P2, (uint16_t *)&position_ax_2_read, &dxl_error);
+    if (dxl_comm_result == COMM_SUCCESS){
       ROS_INFO("getPosition : [ID:%d] -> [POSITION:%d]", DXL_AX1_ID, position_ax_read);
-    } else {
+      ROS_INFO("getPosition : [ID:%d] -> [POSITION:%d]", DXL_AX2_ID, position_ax_read);
+    } 
+    else {
       ROS_ERROR("Failed to get position! Result: %d", dxl_comm_result);
     }
 
@@ -162,14 +178,20 @@ int main(int argc, char ** argv)
       ROS_INFO("Failed to get position! Result: %d", dxl_comm_result);
     }
     
-    position_ax_write = position_ax_write + int(vel_ax);
-    if (position_ax_write > 700) position_ax_write = 700;
-    else if (position_ax_write  < 300) position_ax_write = 300;
+    position_ax_1_write = position_ax_1_write + int(vel_ax_1);
+    if (position_ax_1_write > 700) position_ax_1_write = 700;
+    else if (position_ax_1_write  < 300) position_ax_1_write = 300;
+
+    position_ax_2_write = position_ax_2_write + int(vel_ax_2);
+    if (position_ax_2_write > 700) position_ax_2_write = 700;
+    else if (position_ax_2_write  < 300) position_ax_2_write = 300;
 
     cycle_rate.sleep();
   }
   
+  //何してるん？
   dxl_comm_result = packetHandler1->write1ByteTxRx(portHandler, DXL_AX1_ID, ADDR_TORQUE_ENABLE_P1, 0, &dxl_error);
+  dxl_comm_result = packetHandler1->write1ByteTxRx(portHandler, DXL_AX2_ID, ADDR_TORQUE_ENABLE_P1, 0, &dxl_error);
   if (dxl_comm_result != COMM_SUCCESS) {
     ROS_ERROR("Failed to disable torque for Dynamixel ID %d", DXL_AX1_ID);
     return -1;

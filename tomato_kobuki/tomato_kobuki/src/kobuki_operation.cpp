@@ -16,11 +16,11 @@ KobukiOperation::KobukiOperation(double freq) :
 
 void KobukiOperation::joy_callback(const sensor_msgs::Joy &joy_msg)
 {
-    double _g_speed = 0.2;
+    double _g_speed = 0.30;
     double motion_v_tmp = joy_msg.axes[7] * _g_speed;
 
-    // double _g_turn = 1;
-    // double rotation_v_tmp = _____;
+    double _g_turn = 1;
+    double rotation_v_tmp = _____;
 
     if( abs(joy_msg.axes[7])<=0.1 ){
         std::cout << "Stop" << std::endl;
