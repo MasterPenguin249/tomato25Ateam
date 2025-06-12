@@ -40,7 +40,7 @@ uint16_t position_ax_write_1 = 512; // 0~1023
 int16_t vel_mx_read = 0;
 int16_t vel_mx_write= 0; // -285 ~ 285
 
-float scale_ax = 0.1;//4.0
+float scale_ax = 0.08;//4.0
 float vel_ax_1 = 0.0;
 float vel_ax_2 = 0.0;
 
@@ -54,7 +54,15 @@ float vel_mx = 0.0;
 
 void joyCallback(const sensor_msgs::Joy& msg)
 {
-  vel_ax_1 = msg.axes[6]*scale_ax;
+  if(msg.buttons[1]==1){
+    vel_ax_1 = - msg.buttons[1]*scale_ax;
+  }
+  else if(msg.buttons[2]==1){
+    vel_ax_1 = msg.buttons[2]*scale_ax;
+  }
+  else{
+    vel_ax_1 = 0;
+  }
 
   vel_ax_x = msg.axes[4]*_gain_ax;
   vel_ax_y = msg.axes[7]*_gain_ax;
