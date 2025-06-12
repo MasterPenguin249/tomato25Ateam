@@ -6,7 +6,7 @@
 #include <memory>
 #include <ros/ros.h>
 #include "dynamixel_sdk/dynamixel_sdk.h"
-#include "DynamixelControl/Motor.h"
+#include "/home/ting/catkin_ws/src/tomato/dynamixelcontrol/include/DynamixelControl/Motor.h"
 
 /// Control table address for protocol 2 (MX, XC)
 #define ADDR_OPERATING_MODE_P2   11
