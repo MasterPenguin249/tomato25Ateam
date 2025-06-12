@@ -5,11 +5,13 @@
 #include <cmath>
 #include <memory>
 #include <string>
-#include<sensor_msgs/Joy.h>
+#include <sensor_msgs/Joy.h>
 #include "DynamixelControl/DynamixelControl.h"
 #include <yolo_detection/BoundingBoxArray.h>
 #include <yolo_detection/BoundingBox.h>
 
+
+#define BAUDRATE              1000000
 
 #define f1(x, y) -(cos(x) / cos(y))
 #define f2(x, y) (sin(x) / sin(y))
@@ -36,8 +38,8 @@ double l = 9; // cm
 void joyCallback(const sensor_msgs::Joy& msg)
 {
   vel_axx = msg.axes[4]*_gain_ax;
-  vel_axy = msg.axes[1]*_gain_ax;
-  opening = msg.buttons[0] == 0;
+  vel_axy = msg.axes[7]*_gain_ax;
+  opening = msg.buttons[5] == 0;
 
   ROS_INFO("%d", msg.buttons[0]);
 }

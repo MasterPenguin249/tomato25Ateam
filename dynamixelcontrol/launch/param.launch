@@ -3,6 +3,5 @@
 	<node name="param" pkg="dynamixelcontrol" type="param" output="screen">
 		<param name="dev" value="/dev/ttyUSB0"/>
 	</node> 
-	
 </launch>
 
