@@ -6,8 +6,8 @@
 #include <memory>
 #include <ros/ros.h>
 #include "dynamixel_sdk/dynamixel_sdk.h"
-#include "/home/ting/catkin_ws/src/tomato/dynamixelcontrol/include/DynamixelControl/AXMotor.h"
-#include "/home/ting/catkin_ws/src/tomato/dynamixelcontrol/include/DynamixelControl/MXMotor.h"
+#include "DynamixelControl/AXMotor.h"
+#include "DynamixelControl/MXMotor.h"
 
 #define AX_TORQUE_LIMIT_DEFAULT 30
 

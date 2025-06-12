@@ -6,7 +6,7 @@
 #include <memory>
 #include <ros/ros.h>
 #include "dynamixel_sdk/dynamixel_sdk.h"
-#include "/home/ting/catkin_ws/src/tomato/dynamixelcontrol/include/DynamixelControl/Motor.h"
+#include "DynamixelControl/Motor.h"
 
 // Control table address for protocol 1 (AX)
 #define ADDR_TORQUE_ENABLE_P1    24
