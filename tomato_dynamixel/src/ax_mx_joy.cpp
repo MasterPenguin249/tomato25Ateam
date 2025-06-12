@@ -7,6 +7,11 @@
 
 using namespace dynamixel;
 
+// Control table address for protocol 1 (AX)
+#define ADDR_TORQUE_ENABLE_P1    24
+#define ADDR_GOAL_POSITION_P1    30
+#define ADDR_PRESENT_POSITION_P1 36
+
 // Control table address for protocol 2 (MX, XC)
 #define ADDR_OPERATING_MODE_P2   11
 #define ADDR_TORQUE_ENABLE_P2    64
@@ -16,11 +21,6 @@ using namespace dynamixel;
 #define ADDR_PRESENT_CURRENT_P2 126
 #define ADDR_PRESENT_VELOCITY_P2 128
 #define ADDR_PRESENT_POSITION_P2 132
-
-// Control table address for protocol 1 (AX)
-#define ADDR_TORQUE_ENABLE_P1    24
-#define ADDR_GOAL_POSITION_P1    30
-#define ADDR_PRESENT_POSITION_P1 36
 
 // Protocol version
 #define PROTOCOL_VERSION1      1.0
@@ -33,7 +33,7 @@ using namespace dynamixel;
 // #define DXL_AX4_ID            4
 // #define DXL_AX5_ID            5
 #define DXL_MX_ID             10
-#define DXL_XC_ID             20
+// #define DXL_XC_ID             20
 #define BAUDRATE              1000000
 
 #define CURRENT_MODE          0
@@ -51,7 +51,7 @@ int dxl_comm_result = COMM_TX_FAIL;
 uint16_t position_ax_1_read = 0;
 uint16_t position_ax_2_read = 0;
 uint16_t position_ax_1_write = 512; // 0~1023
-uint16_t position_ax_2_write = 512;
+uint16_t position_ax_2_write = 512; 
 
 int16_t vel_mx_read = 0;
 int16_t vel_mx_write = 0; // -285 ~ 285
@@ -70,7 +70,7 @@ void joyCallback(const sensor_msgs::Joy& msg)
   if(msg.buttons[3]==1){
     vel_mx_write = msg.buttons[3]*scale_mx;
   }
-  if(msg.buttons[0]==1){
+  else if(msg.buttons[0]==1){
     vel_mx_write = - msg.buttons[0]*scale_mx;
   }
   else{
@@ -110,7 +110,7 @@ int main(int argc, char ** argv)
   }
   //torque ON
   dxl_comm_result = packetHandler1->write1ByteTxRx(portHandler, DXL_AX1_ID, ADDR_TORQUE_ENABLE_P1, 1, &dxl_error);
-  dx2_comm_result = packetHandler1->write1ByteTxRx(portHandler, DXL_AX2_ID, ADDR_TORQUE_ENABLE_P1, 2, &dxl_error);
+  dxl_comm_result = packetHandler1->write1ByteTxRx(portHandler, DXL_AX2_ID, ADDR_TORQUE_ENABLE_P1, 2, &dxl_error);
   if (dxl_comm_result == COMM_SUCCESS) {
     //ROS_INFO("Success to enable torque for Dynamixel ID %d", DXL_AX1_ID); 
   }else{
@@ -145,7 +145,7 @@ int main(int argc, char ** argv)
     
     ///* AX position mode
     dxl_comm_result = packetHandler1->write2ByteTxRx(portHandler, DXL_AX1_ID, ADDR_GOAL_POSITION_P1, position_ax_1_write, &dxl_error);
-    dxl_comm_result = packetHandler1->write2ByteTxRx(portHandler, DXL_AX2_ID, ADDR_GOAL_POSITION_P2, position_ax_2_write, &dxl_error);
+    dxl_comm_result = packetHandler1->write2ByteTxRx(portHandler, DXL_AX2_ID, ADDR_GOAL_POSITION_P1, position_ax_2_write, &dxl_error);
     if (dxl_comm_result == COMM_SUCCESS) {
       //ROS_INFO("setPosition : [ID:%d] [POSITION:%d]", DXL_AX1_ID, position_write);
     } else {
@@ -153,10 +153,10 @@ int main(int argc, char ** argv)
     }
      
     dxl_comm_result = packetHandler1->read2ByteTxRx(portHandler, DXL_AX1_ID, ADDR_PRESENT_POSITION_P1, (uint16_t *)&position_ax_1_read, &dxl_error);
-    dxl_comm_result = packetHandler1->read2ByteTxRx(portHandler, DXL_AX2_ID, ADDR_PRESENT_POSITION_P2, (uint16_t *)&position_ax_2_read, &dxl_error);
+    dxl_comm_result = packetHandler1->read2ByteTxRx(portHandler, DXL_AX2_ID, ADDR_PRESENT_POSITION_P1, (uint16_t *)&position_ax_2_read, &dxl_error);
     if (dxl_comm_result == COMM_SUCCESS){
-      ROS_INFO("getPosition : [ID:%d] -> [POSITION:%d]", DXL_AX1_ID, position_ax_read);
-      ROS_INFO("getPosition : [ID:%d] -> [POSITION:%d]", DXL_AX2_ID, position_ax_read);
+      ROS_INFO("getPosition : [ID:%d] -> [POSITION:%d]", DXL_AX1_ID, position_ax_1_read);
+      ROS_INFO("getPosition : [ID:%d] -> [POSITION:%d]", DXL_AX2_ID, position_ax_2_read);
     } 
     else {
       ROS_ERROR("Failed to get position! Result: %d", dxl_comm_result);
