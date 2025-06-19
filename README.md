@@ -17,13 +17,14 @@ $ catkin build
 ```
 
 ## Base file
-
+```bash
 $ roslaunch dynamixelcontrol param.launch
-
+```
 ## Camera-based tomato positioning 
-
+```bash
 $ roslaunch dynamixelcontrol follow.launch
-
+```
 ## Realsense camera-based tomato positioning 
-
+```bash
 $ roslaunch dynamixelcontrol real.launch
+```
