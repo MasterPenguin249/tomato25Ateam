@@ -22,8 +22,9 @@ float vel_ax_y = 0.0;
 
 double tomato_x = 9;
 double tomato_y = 9;
-double speed_x = 0.02;
-double speed_y = 0.02;
+double speed_x = 0.005;
+// double speed_x = 0.02;
+double speed_y = 0.005;
 double mx_speed = 0.0;
 bool opening = true;
 double closed = rad(-50);
@@ -41,7 +42,7 @@ double l = 9; // cm
 // int16_t vel_mx_read = 0;
 int16_t vel_mx_write= 0; // -285 ~ 285
 
-float scale_ax = 0.08;
+float scale_ax = 0.01;
 float vel_ax_1 = 0.0;
 float vel_ax_2 = 0.0;
 
