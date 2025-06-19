@@ -1,10 +1,13 @@
 # tomato2023
 
 ## Projects
+- dynamixelcontrol
+- tomato_dynamixel
 - tomato_pubsub
 - tomato_joycon
 - tomato_kobuki
 - tomato_dynamixel
+- yolo_detection
 
 ## how to build the projects
 
