@@ -16,15 +16,24 @@ $ cd tomato2023
 $ catkin build
 ```
 
-## Base file
+## Updates
+- removed y axis movement
+- added restriction to x axis movement
+- Realsense and yolov8 for tomato positioning
+- Monocular camera also supported
+- Added "start" button functionality for toggle between autonomous mode and controlled mode
+- Added "back" button functionality for resetting position of arm
+
+## How to launch
+### Base file
 ```bash
 $ roslaunch dynamixelcontrol param.launch
 ```
-## Camera-based tomato positioning 
+### Camera-based tomato positioning 
 ```bash
 $ roslaunch dynamixelcontrol follow.launch
 ```
-## Realsense camera-based tomato positioning 
+### Realsense camera-based tomato positioning 
 ```bash
 $ roslaunch dynamixelcontrol real.launch
 ```
