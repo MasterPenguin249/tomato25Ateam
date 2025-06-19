@@ -13,7 +13,6 @@
   <build_depend>dynamixel_sdk</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
-  <build_depend>tomato_dynamixel</build_depend>
   <build_depend>yolo_detection</build_depend>
 
   <build_export_depend>dynamixel_sdk</build_export_depend>
@@ -23,7 +22,6 @@
   <exec_depend>dynamixel_sdk</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>tomato_dynamixel</exec_depend>
   <exec_depend>yolo_detection</exec_depend>
 
   <export>

@@ -6,6 +6,7 @@
 #include "DynamixelControl/DynamixelControl.h"
 #include <yolo_detection/BoundingBoxArray.h>
 #include <yolo_detection/BoundingBox.h>
+#include <geometry_msgs/PointStamped.h>
 
 #include <cmath>
 #include <memory>
@@ -30,6 +31,10 @@ double tomato_y = 9;
 double tomato_z = 0;
 double tomato_size = 2.8; //cm
 double t = 0;
+bool use_realsense = true;  // Toggle between RealSense and monocular
+geometry_msgs::PointStamped latest_tomato_point;
+bool has_realsense_data = false;
+
 
 // arm states
 float vel_ax_x = 0.0;
@@ -178,12 +183,30 @@ void joyCallback(const sensor_msgs::Joy& msg)
 
 }
 
+void realsensePointCallback(const geometry_msgs::PointStamped::ConstPtr& msg)
+{
+    if(paused) return;
+    
+    latest_tomato_point = *msg;
+    has_realsense_data = true;
+    
+    // Convert from meters to centimeters (matching your coordinate system)
+    tomato_x = msg->point.x * 100.0;
+    tomato_y = msg->point.y * 100.0;
+    tomato_z = msg->point.z * 100.0;
+    
+    // Apply any additional coordinate transformations if needed
+    // This replaces your complex trigonometric calculations with direct 3D data
+}
 
 void bboxCallback(const yolo_detection::BoundingBoxArray::ConstPtr& msg)
 {
   if(paused) return;
   double min_distance = 10000;
 
+  if(use_realsense && has_realsense_data) {
+    return;  // RealSense data is handled in realsensePointCallback
+  }
 
   // Process each bounding box
   for (size_t i = 0; i < msg->bounding_boxes.size(); ++i)
@@ -257,8 +280,7 @@ void limitcheck(std::vector<double> &target_val){
 bool is_ok(double theta1, double theta2){
   double _x = l*(sin(theta1) + sin(theta2));
   double _y = l*(cos(theta1) - cos(theta2));
-  // put limits here
-  if(sqrt(_x*_x+_y*_y) > 2*l || _x > 15 || _y < -2 ) {
+  if(sqrt(_x*_x+_y*_y) > 2*l) {
     ROS_ERROR("invalid square values");
     return false;
   }
@@ -358,6 +380,9 @@ int main(int argc, char ** argv)
   ros::Rate cycle_rate(500);
   ros::Subscriber subscriber = nh.subscribe("joy", 1, joyCallback);
   ros::Subscriber sub = nh.subscribe<yolo_detection::BoundingBoxArray>("tomato_detections", 1, bboxCallback);
+  ros::Subscriber realsense_sub = nh.subscribe<geometry_msgs::PointStamped>("/realsense/tomato_3d_point", 1, realsensePointCallback);
+
+  pnh.param<bool>("use_realsense", use_realsense, true);
 
   std::string dev_name;
   pnh.param<std::string>("dev", dev_name, "/dev/ttyUSB0");
