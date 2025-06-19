@@ -15,3 +15,15 @@ $ git clone
 $ cd tomato2023
 $ catkin build
 ```
+
+## Base file
+
+$ roslaunch dynamixelcontrol param.launch
+
+## Camera-based tomato positioning 
+
+$ roslaunch dynamixelcontrol follow.launch
+
+## Realsense camera-based tomato positioning 
+
+$ roslaunch dynamixelcontrol real.launch
