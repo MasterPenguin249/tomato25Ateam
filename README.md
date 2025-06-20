@@ -30,10 +30,14 @@ $ catkin build
 ## Basic Arm geometry
 ### x, y coordinates
 ![equation](https://latex.codecogs.com/svg.image?&space;x=l(sin(\theta_1)&plus;sin(\theta_2)))
+
+
 ![equation](https://latex.codecogs.com/svg.image?&space;y=l(cos(\theta_1)-cos(\theta_2)))
 
 ### inverse kinematics solution 
 ![equation](https://latex.codecogs.com/svg.image?\theta_1=sin^{-1}(\frac{\sqrt{x^2&plus;y^2}}{2l})&plus;tan^{-1}(\frac{y}{x}))
+
+
 ![equation](https://latex.codecogs.com/svg.image?\theta_1=sin^{-1}(\frac{\sqrt{x^2&plus;y^2}}{2l})-tan^{-1}(\frac{y}{x}))
 
 ## Usage (code)
