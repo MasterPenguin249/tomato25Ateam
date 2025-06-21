@@ -1,5 +1,5 @@
-#ifndef MXMORTOR
-#define MXMORTOR
+#ifndef MXMOTOR
+#define MXMOTOR
 
 #include <string>
 #include <cmath>
@@ -21,10 +21,12 @@
 #define CURRENT_MODE          0
 #define VELOCITY_MODE         1
 #define POSITION_MODE         3
+#define EXTENDED_POSITION_MODE 4
 
 #define PROTOCOL_VERSION2      2.0
 
 #define MX_VELOCITY_LIMIT 250
+#define MX_EXPOSITON_LIMIT 1000000
 
 // MXモーターはプロトコル1.0, 2.0の両方で通信可能
 // 今回は他の拡張用モーターとの兼ね合いや、機器がすでにプロトコル2.0で設定されているため
@@ -35,19 +37,21 @@ class MXMotor : public Motor
 {
 private:
     double current_velocity;    //[rad/s]
+    double current_position;
     std::string mode;           //"velocity control", "current base position control"
 
     std::weak_ptr<dynamixel::GroupBulkRead> groupbulkread;
     std::weak_ptr<dynamixel::GroupBulkWrite> groupbulkwrite;
     
 public:
-    MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, std::shared_ptr<dynamixel::GroupBulkRead> groupbulkread, std::shared_ptr<dynamixel::GroupBulkWrite> groupbulkwrite);
+    MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, std::shared_ptr<dynamixel::GroupBulkRead> groupbulkread, std::shared_ptr<dynamixel::GroupBulkWrite> groupbulkwrite, std::string control_mode);
     ~MXMotor();
 
     // const float protocol_version = 2.0;
 
     double get_current_value() override;
     double get_current_velocity();
+    double get_current_position();
     double get_goal_value();
 
     bool torque_on () override;
@@ -56,7 +60,7 @@ public:
     bool goalset(double goal) override;
     bool read() override;
 
-    // bool modeset(std::string mode_in);
+    bool modeset(std::string mode_in);
 };
 
 #endif

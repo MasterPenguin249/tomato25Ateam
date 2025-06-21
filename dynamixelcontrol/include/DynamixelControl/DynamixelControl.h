@@ -37,7 +37,8 @@ public:
     DynamixelControl(std::string dev_name);
     ~DynamixelControl();
 
-    bool addMotor(std::string type, int id/*, std::string mode */);
+    bool addMotor(std::string type, int id);
+    bool addMotor(std::string type, int id, std::string mode);  // 制御モードを選ぶ場合
   
     bool torque_on();
     bool torque_off();

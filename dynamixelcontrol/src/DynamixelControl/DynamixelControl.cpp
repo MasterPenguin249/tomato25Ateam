@@ -62,6 +62,26 @@ bool DynamixelControl::addMotor(std::string type, int id)
     return false;
 }
 
+bool DynamixelControl::addMotor(std::string type, int id, std::string mode)
+{
+    if( !ready_to_use ) return false;
+
+    if(type == "AX")
+    {
+        motorlist.push_back( std::make_unique< AXMotor >(id, AX_TORQUE_LIMIT_DEFAULT, portHandler, packetHandler_p1, groupsyncwrite_p1 ));
+        return true;
+    }
+    else if (type == "MX")
+    {
+        motorlist.push_back( std::make_unique< MXMotor >(id, portHandler, packetHandler_p2, groupbulkread_p2, groupbulkwrite_p2, mode) );
+        return true;
+    }
+    
+    state = "addMotor: Wrong motor type is assigned.";
+    disp_trouble();
+    return false;
+}
+
 bool DynamixelControl::torque_on()
 {
     if( !ready_to_use ) return false;
