@@ -26,6 +26,7 @@ $ catkin build
 - Monocular camera also supported
 - Added "start" button functionality for toggle between autonomous mode and controlled mode
 - Added "back" button functionality for resetting position of arm
+- rviz visualization
 
 ## Basic Arm geometry
 ### x, y coordinates
