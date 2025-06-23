@@ -52,3 +52,9 @@ target_link_libraries(param ${catkin_LIBRARIES})
 
 # add_executable(ax_mx_joy src/ax_mx_joy.cpp)
 # target_link_libraries(ax_mx_joy ${catkin_LIBRARIES})
+
+add_executable(class_test_mx_ex
+src/class_test_mx_ex.cpp
+src/DynamixelControl/Motor.cpp
+src/DynamixelControl/MXMotor.cpp)
+target_link_libraries(class_test_mx_ex ${catkin_LIBRARIES})
