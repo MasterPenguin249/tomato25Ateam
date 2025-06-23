@@ -1,11 +1,11 @@
 <launch>
     <arg name="model_path" default="yolov8n.pt" />
 	<node name="joy_node" pkg="joy" type="joy_node" />
-	<node name="param2" pkg="dynamixelcontrol" type="param2" output="screen">
+	<node name="param3" pkg="dynamixelcontrol" type="param3" output="screen">
 		<param name="dev" value="/dev/ttyUSB0"/>
 	</node> 
     <!-- RealSense Tomato Detector Node -->
-    <node name="realsense_tomato_detector" pkg="yolo_detection" type="realsense_tomato_detector.py" output="screen">
+    <node name="realsense2" pkg="yolo_detection" type="realsense2.py" output="screen">
         <!-- YOLOv8 Model Parameters -->
         <param name="model_path" value="$(arg model_path)" />
         <param name="confidence_threshold" value="0.1" />
@@ -27,6 +27,5 @@
         <param name="max_depth" value="3.0" />   <!-- meters -->
     </node>
     
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find yolo_detection)/rviz/tomato.rviz"/>
 
 </launch>

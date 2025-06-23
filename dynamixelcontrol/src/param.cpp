@@ -51,7 +51,7 @@ int prev_back_button = 0;
 float lt = 0;
 
 // camera states
-double cam_angle = rad(-30);
+double cam_angle = rad(-15);
 double armdim_x = 8;
 double armdim_y = 9;
 
@@ -64,46 +64,9 @@ double speed_x = 0.02;
 double speed_y = 0.02;
 float scale_mx = 30.0; // 3/s? that's 30/ds
 
-// create permanent double
-class MappedDouble{
-  double *ptr;
-  int fd;
-  std::string filename;
-
-  public:
-    MappedDouble(const std::string &file) : filename(file){
-      //open/create file
-      fd = open(filename.c_str(), O_CREAT | O_RDWR, 0666);
-      if(fd == -1) throw std::runtime_error("Cannot open  file");
-
-      //Ensure file is large enough
-      struct stat st;
-      fstat(fd, &st);
-      if(st.st_size < sizeof(double)){
-        lseek(fd, sizeof(double) - 1, SEEK_SET);
-        write(fd, "", 1); //extend file
-      }
-
-      //map file to memory
-      ptr = (double *)mmap(nullptr, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
-      if(ptr == MAP_FAILED){
-        close(fd);
-        throw std::runtime_error("mmap failed");
-      }
-    }
-
-    ~MappedDouble(){
-      if(ptr != MAP_FAILED) munmap(ptr, sizeof(double));
-      if( fd != -1)  close(fd);
-    }
-
-    double &operator *(){ return *ptr;}
-    double *operator ->(){ return ptr;}
-    double &value() { return *ptr;}
-};
-MappedDouble mx_pos("mx_pos.mmap");
-
+// mx variables
+float mx_pos = 0; // cm
+double worm_pitch = 1.5;
 
 // example range
 // y(250, 220) minus 150-> (100, 70)?? (because the range is 0,300 not 0,360)
@@ -201,7 +164,7 @@ void bboxCallback(const yolo_detection::BoundingBoxArray::ConstPtr& msg)
     tomato_x = distance * cos(cam_angle) - (240 - center_y )/480 * 11.25 / 17 * distance * sin(cam_angle)- 3; 
     // tomato_y has to be within (0, 14)
     tomato_y = (240 - center_y )/480 * 11.25 / 17 * distance * cos(cam_angle)\
-    + distance * sin(cam_angle) + (41.5 - *mx_pos);
+    + distance * sin(cam_angle) + (41.5 - mx_pos);
     //tomato_z within (-5.5, 5.5)
     tomato_z = (320 - center_x )/640 * 15 / 17 * distance + 1;
   }
@@ -302,7 +265,7 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
     //solveRK4(theta[0], theta[1], dtheta1, "dtheta2");
     t = 0;
   }
-  else if(abs(vel_ax_y) > 0.8 && !fixed_y && is_ok(target_val[1] + dtheta2, target_val[0] - dtheta2 * cos(theta[1])/cos(theta[0]))){ 
+  else if(abs(vel_ax_y) > 0.8 && !fixed_y && is_ok( target_val[0] - dtheta2 * cos(theta[1])/cos(theta[0]), target_val[1] + dtheta2)){ 
     target_val[1] += dtheta2;
     target_val[0] += -dtheta2 * cos(theta[1])/cos(theta[0]);
     // solveRK4(theta[1], theta[0], dtheta2, "dtheta1");
@@ -327,16 +290,14 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   }
 
   target_val[2] = opening ? opened: closed;
-  target_val[3] = vel_mx_write;
-  double tmp = *mx_pos;
-  *mx_pos = tmp + (double)vel_mx_write / 500;
+  target_val[3] = mx_pos * worm_pitch;
   target_val[4] += vel_ax_1; 
   
   if(abs(t - round(t)) < 0.03){
     ROS_INFO("tomato_xyz: [%f, %f, %f]", tomato_x, tomato_y, tomato_z);
     ROS_INFO("COORDS: [%f, %f, %f]", x, y, z);
     ROS_INFO("t: %f", t);
-    ROS_INFO("%f", *mx_pos);
+    ROS_INFO("%f", mx_pos);
 
     if(tomato_x > 17) ROS_ERROR("TOO FAR !! move closer");
   }
@@ -350,8 +311,6 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
 int main(int argc, char ** argv)
 {
   ros::init(argc, argv, "param");
-
-  *mx_pos = 23;
 
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");

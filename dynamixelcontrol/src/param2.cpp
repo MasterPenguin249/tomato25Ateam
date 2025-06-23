@@ -44,7 +44,7 @@ bool paused = false;
 bool backed = false;
 bool fixed_y = true;
 bool goback = false;
-double closed = rad(-40);
+double closed = rad(-50);
 double opened = rad(10);
 double l = 9; // cm
 
@@ -69,45 +69,9 @@ double speed_x = 0.02;
 double speed_y = 0.02;
 float scale_mx = 30.0; // 3/s? that's 30/ds
 
-// create permanent double
-class MappedDouble{
-  double *ptr;
-  int fd;
-  std::string filename;
-
-  public:
-    MappedDouble(const std::string &file) : filename(file){
-      //open/create file
-      fd = open(filename.c_str(), O_CREAT | O_RDWR, 0666);
-      if(fd == -1) throw std::runtime_error("Cannot open  file");
-
-      //Ensure file is large enough
-      struct stat st;
-      fstat(fd, &st);
-      if(st.st_size < sizeof(double)){
-        lseek(fd, sizeof(double) - 1, SEEK_SET);
-        write(fd, "", 1); //extend file
-      }
-
-      //map file to memory
-      ptr = (double *)mmap(nullptr, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
-      if(ptr == MAP_FAILED){
-        close(fd);
-        throw std::runtime_error("mmap failed");
-      }
-    }
-
-    ~MappedDouble(){
-      if(ptr != MAP_FAILED) munmap(ptr, sizeof(double));
-      if( fd != -1)  close(fd);
-    }
-
-    double &operator *(){ return *ptr;}
-    double *operator ->(){ return ptr;}
-    double &value() { return *ptr;}
-};
-MappedDouble mx_pos("mx_pos.mmap");
+// mx position (cm)
+float mx_pos = 3.0;
+double worm_pitch = 1.5;
 
 
 // example range
@@ -167,7 +131,7 @@ void joyCallback(const sensor_msgs::Joy& msg)
     vel_mx_write=0;
 
   // fixed y or not
-  fixed_y = (msg.axes[2] > 0.8)?  false: true;
+  fixed_y = (msg.axes[2]< -0.8)?  false: true;
 
   int current_start_button = msg.buttons[7];
   // Detect button pressed (start)
@@ -190,13 +154,21 @@ void realsensePointCallback(const geometry_msgs::PointStamped::ConstPtr& msg)
     latest_tomato_point = *msg;
     has_realsense_data = true;
     
-    // Convert from meters to centimeters (matching your coordinate system)
     tomato_x = msg->point.x * 100.0;
     tomato_y = msg->point.y * 100.0;
     tomato_z = msg->point.z * 100.0;
+
+    // Convert from meters to centimeters (matching your coordinate system)
+    // double center_x = msg->point.x * 100.0;
+    // double center_y = msg->point.y * 100.0;
+    // double distance = msg->point.z * 100.0;
     
-    // Apply any additional coordinate transformations if needed
-    // This replaces your complex trigonometric calculations with direct 3D data
+    // //tomato_x within (7, 21)
+    // tomato_x = distance * cos(cam_angle) - center_y * sin(cam_angle) + tomato_size/2; 
+    // // tomato_y has to be within (0, 14)
+    // tomato_y = center_y * distance * cos(cam_angle) + distance * sin(cam_angle) + (41.5 - mx_pos); // calibration needed
+    // //tomato_z within (-5.5, 5.5)
+    // tomato_z = distance;
 }
 
 void bboxCallback(const yolo_detection::BoundingBoxArray::ConstPtr& msg)
@@ -224,7 +196,7 @@ void bboxCallback(const yolo_detection::BoundingBoxArray::ConstPtr& msg)
     tomato_x = distance * cos(cam_angle) - (240 - center_y )/480 * 11.25 / 17 * distance * sin(cam_angle)- 3; 
     // tomato_y has to be within (0, 14)
     tomato_y = (240 - center_y )/480 * 11.25 / 17 * distance * cos(cam_angle)\
-    + distance * sin(cam_angle) + (41.5 - *mx_pos);
+    + distance * sin(cam_angle) + (41.5 - mx_pos); // calibration needed
     //tomato_z within (-5.5, 5.5)
     tomato_z = (320 - center_x )/640 * 15 / 17 * distance + 1;
   }
@@ -259,28 +231,10 @@ void limitcheck(std::vector<double> &target_val){
   }
 }
 
-// //Runge-Kutta
-// double solveRK4(double &x, double &y, double &h, std::string mode ){
-//   if(mode == "dtheta1"){
-//     double k1 = h * f1(x, y);
-//     double k2 = h * f1(x + 0.5*h, y + 0.5*k1);
-//     double k3 = h * f1(x + 0.5*h, y + 0.5*k2);
-//     double k4 = h * f1(x + h, y + k3);
-//     return 1/6*(k1 + 2*k2 + 2*k3 + k4);
-//   }
-//   if(mode == "dtheta2"){
-//     double k1 = h * f2(x, y);
-//     double k2 = h * f2(x + 0.5*h, y + 0.5*k1);
-//     double k3 = h * f2(x + 0.5*h, y + 0.5*k2);
-//     double k4 = h * f2(x + h, y + k3);
-//     return 1/6*(k1 + 2*k2 + 2*k3 + k4);
-//   }
-// }
-
 bool is_ok(double theta1, double theta2){
   double _x = l*(sin(theta1) + sin(theta2));
   double _y = l*(cos(theta1) - cos(theta2));
-  if(sqrt(_x*_x+_y*_y) > 2*l) {
+  if(sqrt(_x*_x+_y*_y) > 2*l || _x > 16 || _y < -2) {
     ROS_ERROR("invalid square values");
     return false;
   }
@@ -317,17 +271,14 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   double dtheta2 = signy * speed_y;
 
   // joy stick control
-  // TODO use runge-kutta. (p.n never mind runge-kutta is actually worse)
   if(abs(vel_ax_x) > 0.8 && is_ok(target_val[0] + dtheta1, target_val[1] + dtheta1 * sin(theta[0])/sin(theta[1]))){
     target_val[0] += dtheta1 ; //radians
     target_val[1] += dtheta1 * sin(theta[0])/sin(theta[1]);
-    //solveRK4(theta[0], theta[1], dtheta1, "dtheta2");
     t = 0;
   }
-  else if(abs(vel_ax_y) > 0.8 && !fixed_y && is_ok(target_val[1] + dtheta2, target_val[0] - dtheta2 * cos(theta[1])/cos(theta[0]))){ 
+  else if(abs(vel_ax_y) > 0.8 && !fixed_y && is_ok(target_val[0] - dtheta2 * cos(theta[1])/cos(theta[0]), target_val[1] + dtheta2)){ 
     target_val[1] += dtheta2;
     target_val[0] += -dtheta2 * cos(theta[1])/cos(theta[0]);
-    // solveRK4(theta[1], theta[0], dtheta2, "dtheta1");
     t = 0;
   }
   // autonomous
@@ -349,16 +300,15 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   }
 
   target_val[2] = opening ? opened: closed;
-  target_val[3] = vel_mx_write;
-  double tmp = *mx_pos;
-  *mx_pos = tmp + (double)vel_mx_write / 500;
+  mx_pos = theta[3] * worm_pitch;
+  target_val[3] += rad(0.02);
   target_val[4] += vel_ax_1; 
   
   if(abs(t - round(t)) < 0.03){
     ROS_INFO("tomato_xyz: [%f, %f, %f]", tomato_x, tomato_y, tomato_z);
     ROS_INFO("COORDS: [%f, %f, %f]", x, y, z);
     ROS_INFO("t: %f", t);
-    ROS_INFO("%f", *mx_pos);
+    ROS_INFO("%f", mx_pos);
 
     if(tomato_x > 17) ROS_ERROR("TOO FAR !! move closer");
   }
@@ -372,8 +322,6 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
 int main(int argc, char ** argv)
 {
   ros::init(argc, argv, "param");
-
-  *mx_pos = 23;
 
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
