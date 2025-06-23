@@ -1,0 +1,7 @@
+<launch>
+	<node name="joy_node" pkg="joy" type="joy_node" />
+	<node name="mx_ex_joy" pkg="dynamixelcontrol" type="class_test_mx_ex" output="screen">
+		<param name="dev" value="/dev/ttyUSB0"/>
+	</node> 
+</launch>
+

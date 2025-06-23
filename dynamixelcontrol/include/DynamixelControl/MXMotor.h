@@ -45,6 +45,7 @@ private:
     
 public:
     MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, std::shared_ptr<dynamixel::GroupBulkRead> groupbulkread, std::shared_ptr<dynamixel::GroupBulkWrite> groupbulkwrite, std::string control_mode);
+    MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, std::shared_ptr<dynamixel::GroupBulkRead> groupbulkread, std::shared_ptr<dynamixel::GroupBulkWrite> groupbulkwrite);
     ~MXMotor();
 
     // const float protocol_version = 2.0;

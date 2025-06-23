@@ -32,6 +32,23 @@ MXMotor::MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketH
 
 };
 
+MXMotor::MXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, std::shared_ptr<dynamixel::GroupBulkRead> groupbulkread, std::shared_ptr<dynamixel::GroupBulkWrite> groupbulkwrite):
+    Motor(id, /*version =*/2.0, porthandler, packethandler)
+{
+    bool dxl_addparam_result = false;
+
+    this->groupbulkread = groupbulkread;
+    this->groupbulkwrite = groupbulkwrite;
+ 
+    // velocity
+    mode = "velocity control";
+        dxl_addparam_result = groupbulkread->addParam(id, ADDR_PRESENT_VELOCITY_P2,4/*byte*/);
+        if( !dxl_addparam_result ){
+            ROS_ERROR("[id: %d]: groupBulkread addparam failed.", id);
+        }
+
+};
+
 MXMotor::~MXMotor(){};
 
 double MXMotor::get_current_velocity()
@@ -181,8 +198,8 @@ bool MXMotor::goalset(double goal)
     {
         //  rad で受け取る
         //  [deg] = value * 360/4096 
-        //  -> value = [rad] * pi/2048
-        write_data = round( goal * (M_PI / 2048));
+        //  -> value = [rad] * 2048/pi
+        write_data = round( goal * (2048/M_PI));
 
         // プログラム側からも角度制限
         // ハード的な可動範囲は -1048575 ~ + 1048575        source:https://www.besttechnology.co.jp/modules/knowledge/?MX%20Series%20Control%20table%282.0%29#a86abf50
