@@ -6,6 +6,7 @@
 #include "DynamixelControl/DynamixelControl.h"
 #include <yolo_detection/BoundingBoxArray.h>
 #include <yolo_detection/BoundingBox.h>
+#include <geometry_msgs/PointStamped.h>
 
 #include <cmath>
 #include <memory>
@@ -30,6 +31,11 @@ double tomato_y = 9;
 double tomato_z = 0;
 double tomato_size = 2.8; //cm
 double t = 0;
+bool use_realsense = true;  // Toggle between RealSense and monocular
+geometry_msgs::PointStamped latest_tomato_point;
+bool has_realsense_data = false;
+// bool paused_collection = false;
+
 
 // arm states
 float vel_ax_x = 0.0;
@@ -39,7 +45,7 @@ bool paused = false;
 bool backed = false;
 bool fixed_y = true;
 bool goback = false;
-double closed = rad(-40);
+double closed = rad(-50);
 double opened = rad(10);
 double l = 9; // cm
 
@@ -51,24 +57,24 @@ int prev_back_button = 0;
 float lt = 0;
 
 // camera states
-double cam_angle = rad(-15);
+double cam_angle = rad(-2);
+double cam_angle_real = rad(-15);
 double armdim_x = 8;
 double armdim_y = 9;
 
 // velocity variables
-double vel_mx_write= 0; // -285 ~ 285
+int16_t vel_mx_write= 0; // -285 ~ 285
 float scale_ax = 0.05;
 float vel_ax_1 = 0.0;
 float vel_ax_2 = 0.0;
 double speed_x = 0.02;
 double speed_y = 0.02;
-float scale_mx = 30.0; // degrees
+float scale_mx = 30.0; // 3/s? that's 30/ds
 
-double prev_val3 = 0.0;
+// mx position (cm)
+float mx_pos = 3.0;
+double worm_pitch = 1.5;
 
-// mx variables
-float mx_pos = 0; // cm
-double worm_pitch = 1.5 / (2* M_PI);
 
 // example range
 // y(250, 220) minus 150-> (100, 70)?? (because the range is 0,300 not 0,360)
@@ -99,6 +105,7 @@ void go_back(std::vector<double> &cur_val, std::vector<double> &target_val){
     paused = false;
     opening = true;
     goback = false;
+    // paused_collection = false;
     t = 0;
   } 
 }
@@ -127,7 +134,7 @@ void joyCallback(const sensor_msgs::Joy& msg)
     vel_mx_write=0;
 
   // fixed y or not
-  fixed_y = (msg.axes[2] > 0.8)?  false: true;
+  fixed_y = (msg.axes[2]< -0.8)?  false: true;
 
   int current_start_button = msg.buttons[7];
   // Detect button pressed (start)
@@ -143,12 +150,38 @@ void joyCallback(const sensor_msgs::Joy& msg)
 
 }
 
+void realsensePointCallback(const geometry_msgs::PointStamped::ConstPtr& msg)
+{
+    if(paused) return;
+    
+    latest_tomato_point = *msg;
+    has_realsense_data = true;
+    
+    // tomato_x = msg->point.x * 100.0;
+    // tomato_y = msg->point.y * 100.0;
+    // tomato_z = msg->point.z * 100.0;
+
+    //Convert from meters to centimeters 
+    double distance = msg->point.x * 100.0 + tomato_size/2; 
+    double center_y = msg->point.y * -100.0;
+    double center_z = msg->point.z * -100.0;
+    
+    //tomato_x within (7, 21)
+    tomato_x = distance * cos(cam_angle_real) - center_y * sin(cam_angle_real) - 4.5; 
+    // tomato_y has to be within (0, 14)
+    tomato_y = center_y * cos(cam_angle_real) + distance * sin(cam_angle_real) + 14.2; // calibration needed
+    //tomato_z within (-5.5, 5.5)
+    tomato_z = center_z + 4.0;
+}
 
 void bboxCallback(const yolo_detection::BoundingBoxArray::ConstPtr& msg)
 {
   if(paused) return;
   double min_distance = 10000;
 
+  if(use_realsense && has_realsense_data) {
+    return;  // RealSense data is handled in realsensePointCallback
+  }
 
   // Process each bounding box
   for (size_t i = 0; i < msg->bounding_boxes.size(); ++i)
@@ -166,9 +199,9 @@ void bboxCallback(const yolo_detection::BoundingBoxArray::ConstPtr& msg)
     tomato_x = distance * cos(cam_angle) - (240 - center_y )/480 * 11.25 / 17 * distance * sin(cam_angle)- 3; 
     // tomato_y has to be within (0, 14)
     tomato_y = (240 - center_y )/480 * 11.25 / 17 * distance * cos(cam_angle)\
-    + distance * sin(cam_angle) + (41.5 - 24 - mx_pos);
+    + distance * sin(cam_angle) + (41.5 - mx_pos); // calibration needed
     //tomato_z within (-5.5, 5.5)
-    tomato_z = (320 - center_x )/640 * 15 / 17 * distance + 1;
+    tomato_z = (320 - center_x )/640 * 15 / 17 * distance + 1 ;
   }
 }
 
@@ -201,29 +234,10 @@ void limitcheck(std::vector<double> &target_val){
   }
 }
 
-// //Runge-Kutta
-// double solveRK4(double &x, double &y, double &h, std::string mode ){
-//   if(mode == "dtheta1"){
-//     double k1 = h * f1(x, y);
-//     double k2 = h * f1(x + 0.5*h, y + 0.5*k1);
-//     double k3 = h * f1(x + 0.5*h, y + 0.5*k2);
-//     double k4 = h * f1(x + h, y + k3);
-//     return 1/6*(k1 + 2*k2 + 2*k3 + k4);
-//   }
-//   if(mode == "dtheta2"){
-//     double k1 = h * f2(x, y);
-//     double k2 = h * f2(x + 0.5*h, y + 0.5*k1);
-//     double k3 = h * f2(x + 0.5*h, y + 0.5*k2);
-//     double k4 = h * f2(x + h, y + k3);
-//     return 1/6*(k1 + 2*k2 + 2*k3 + k4);
-//   }
-// }
-
 bool is_ok(double theta1, double theta2){
   double _x = l*(sin(theta1) + sin(theta2));
   double _y = l*(cos(theta1) - cos(theta2));
-  // put limits here
-  if(sqrt(_x*_x+_y*_y) > 2*l || _x > 15 || _y < -2 ) {
+  if(sqrt(_x*_x+_y*_y) > 2*l || _x > 16 || _y < -12 || pow(_x + 2, 2)/10 + pow(_y,2)/6 < 1) {
     ROS_ERROR("invalid square values");
     return false;
   }
@@ -250,33 +264,30 @@ void go_to(double _x, double _y, double _z, std::vector<double> &target_val){
 }
 
 void make_move(std::vector<double> &target_val, std::vector<double> &theta){
-
   double signx = vel_ax_x >= 0? 1:-1;
   double signy = vel_ax_y >= 0? 1:-1;
   double x = l*(sin(theta[0]) + sin(theta[1]));
   double y = l*(cos(theta[0]) - cos(theta[1]));
-  double z = -theta[4] * 2.5;
+  double z = -(theta[4] - rad(75)) * 2.5;
   
   double dtheta1 = signx * speed_x;
   double dtheta2 = signy * speed_y;
 
   // joy stick control
-  // TODO use runge-kutta. (p.n never mind runge-kutta is actually worse)
   if(abs(vel_ax_x) > 0.8 && is_ok(target_val[0] + dtheta1, target_val[1] + dtheta1 * sin(theta[0])/sin(theta[1]))){
     target_val[0] += dtheta1 ; //radians
     target_val[1] += dtheta1 * sin(theta[0])/sin(theta[1]);
-    //solveRK4(theta[0], theta[1], dtheta1, "dtheta2");
     t = 0;
   }
-  else if(abs(vel_ax_y) > 0.8 && !fixed_y && is_ok( target_val[0] - dtheta2 * cos(theta[1])/cos(theta[0]), target_val[1] + dtheta2)){ 
+  else if(abs(vel_ax_y) > 0.8 && !fixed_y && is_ok(target_val[0] - dtheta2 * cos(theta[1])/cos(theta[0]), target_val[1] + dtheta2)){ 
     target_val[1] += dtheta2;
     target_val[0] += -dtheta2 * cos(theta[1])/cos(theta[0]);
-    // solveRK4(theta[1], theta[0], dtheta2, "dtheta1");
     t = 0;
   }
   // autonomous
   else if(autonomous && !arrived){
-    go_to(tomato_x - armdim_x, tomato_y, tomato_z, target_val);
+    // paused_collection = true;
+    go_to(tomato_x - armdim_x, tomato_y, tomato_z + rad(75)* 2.5 + z, target_val);
     paused = true;
     if(t > 5) paused = false; 
     if(t > 7) go_back(theta, target_val);
@@ -294,7 +305,7 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
 
   target_val[2] = opening ? opened: closed;
   mx_pos = theta[3] * worm_pitch + 19.63; //calibrated
-  target_val[3] += rad(vel_mx_write) ;
+  target_val[3] += rad(vel_mx_write);
   target_val[4] += vel_ax_1; 
   
   if(abs(t - round(t)) < 0.03){
@@ -310,8 +321,6 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   t += 0.04;
 
   limitcheck(target_val);
-
-  prev_val3 = target_val[3];
 }
 
 int main(int argc, char ** argv)
@@ -323,6 +332,9 @@ int main(int argc, char ** argv)
   ros::Rate cycle_rate(500);
   ros::Subscriber subscriber = nh.subscribe("joy", 1, joyCallback);
   ros::Subscriber sub = nh.subscribe<yolo_detection::BoundingBoxArray>("tomato_detections", 1, bboxCallback);
+  ros::Subscriber realsense_sub = nh.subscribe<geometry_msgs::PointStamped>("/realsense/tomato_3d_point", 1, realsensePointCallback);
+
+  pnh.param<bool>("use_realsense", use_realsense, true);
 
   std::string dev_name;
   pnh.param<std::string>("dev", dev_name, "/dev/ttyUSB0");

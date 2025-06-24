@@ -58,3 +58,21 @@ src/class_test_mx_ex.cpp
 src/DynamixelControl/Motor.cpp
 src/DynamixelControl/MXMotor.cpp)
 target_link_libraries(class_test_mx_ex ${catkin_LIBRARIES})
+
+
+add_executable(param2
+src/param2.cpp
+src/DynamixelControl/Motor.cpp
+src/DynamixelControl/AXMotor.cpp
+src/DynamixelControl/MXMotor.cpp
+src/DynamixelControl/DynamixelControl.cpp)
+target_link_libraries(param2 ${catkin_LIBRARIES})
+
+
+add_executable(param3
+src/param3.cpp
+src/DynamixelControl/Motor.cpp
+src/DynamixelControl/AXMotor.cpp
+src/DynamixelControl/MXMotor.cpp
+src/DynamixelControl/DynamixelControl.cpp)
+target_link_libraries(param3 ${catkin_LIBRARIES})
