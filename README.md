@@ -21,6 +21,8 @@ $ catkin build
 
 ## Updates
 ### 5.0.1
+- Better restrictions
+- Reduced speed (positional -> incremental)
 - Added control phases
 - Phase #1 Fast movement
 - Phase #2 Contact with tomato
