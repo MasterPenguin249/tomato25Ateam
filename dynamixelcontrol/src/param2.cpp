@@ -37,6 +37,9 @@ bool has_realsense_data = false;
 // bool paused_collection = false;
 
 
+//moving states
+bool moving = false;
+
 // arm states
 float vel_ax_x = 0.0;
 float vel_ax_y = 0.0;
@@ -45,9 +48,12 @@ bool paused = false;
 bool backed = false;
 bool fixed_y = true;
 bool goback = false;
-double closed = rad(-50);
-double opened = rad(10);
+bool wait = false;
+double closed = rad(-14.81);
+double half_closed = rad(0.5);
+double opened = rad(18.75);
 double l = 9; // cm
+bool phase_goto = false;
 
 //joy states
 bool opening = true;
@@ -58,8 +64,8 @@ float lt = 0;
 
 // camera states
 double cam_angle = rad(-2);
-double cam_angle_real = rad(-15);
-double armdim_x = 8;
+double cam_angle_real = rad(-12.49);
+double armdim_x = 9;
 double armdim_y = 9;
 
 // velocity variables
@@ -69,11 +75,15 @@ float vel_ax_1 = 0.0;
 float vel_ax_2 = 0.0;
 double speed_x = 0.02;
 double speed_y = 0.02;
+double go_back_speed = 0.08;
 float scale_mx = 30.0; // 3/s? that's 30/ds
 
 // mx position (cm)
-float mx_pos = 3.0;
-double worm_pitch = 1.5;
+float mx_pos = 0; // cm
+double worm_pitch = 1.5 / (2* M_PI);
+double mx_limit = 24; //cm
+bool phase_mxdown = false;
+bool phase_mxup = false;
 
 
 // example range
@@ -85,7 +95,7 @@ double worm_pitch = 1.5;
 bool is_arrived(std::vector<double> &cur_val, std::vector<double> &target_val){
   for(int i = 0; i <5; i++){
     if(i == 2 || i== 3) continue;
-    if(abs(cur_val[i] - target_val[i]) < 0.08) continue;
+    if(abs(cur_val[i] - target_val[i]) < 0.1) continue;
     else return false;
   }
   return true;
@@ -94,6 +104,7 @@ bool is_arrived(std::vector<double> &cur_val, std::vector<double> &target_val){
 
 // reset arm position
 void go_back(std::vector<double> &cur_val, std::vector<double> &target_val){
+  wait = true;
   target_val[0] = rad(-75);
   target_val[1] = rad(105);
   target_val[4] = rad(75);
@@ -105,6 +116,7 @@ void go_back(std::vector<double> &cur_val, std::vector<double> &target_val){
     paused = false;
     opening = true;
     goback = false;
+    wait = false;
     // paused_collection = false;
     t = 0;
   } 
@@ -138,7 +150,11 @@ void joyCallback(const sensor_msgs::Joy& msg)
 
   int current_start_button = msg.buttons[7];
   // Detect button pressed (start)
-  if (current_start_button == 1 && prev_start_button == 0) autonomous = !autonomous;
+  if (current_start_button == 1 && prev_start_button == 0){
+     autonomous = !autonomous;
+     t = 0;
+
+  }
 
   int current_back_button = msg.buttons[6];
   // Detect button pressed (back)
@@ -167,9 +183,9 @@ void realsensePointCallback(const geometry_msgs::PointStamped::ConstPtr& msg)
     double center_z = msg->point.z * -100.0;
     
     //tomato_x within (7, 21)
-    tomato_x = distance * cos(cam_angle_real) - center_y * sin(cam_angle_real) - 4.5; 
+    tomato_x = distance * cos(cam_angle_real) - center_y * sin(cam_angle_real) - 3; 
     // tomato_y has to be within (0, 14)
-    tomato_y = center_y * cos(cam_angle_real) + distance * sin(cam_angle_real) + 14.2; // calibration needed
+    tomato_y = center_y * cos(cam_angle_real) + distance * sin(cam_angle_real) + 14.8; // calibration needed
     //tomato_z within (-5.5, 5.5)
     tomato_z = center_z + 4.0;
 }
@@ -219,11 +235,11 @@ void limitcheck(std::vector<double> &target_val){
   std::vector<std::pair<double, double>> limits = {
     {rad(-70), rad(80)},
     {rad(-target_val[0]+10), rad(-target_val[0]+140)},
-    {rad(-150), rad(150)},
-    {-100, 100},
-    {rad(20), rad(120)}
+    {rad(-150), rad(150) },
+    {-100, (mx_limit- 19.63)/worm_pitch},
+    {rad(20), rad(120)},
+    {rad(0), rad(-45)}
   };
-
   // gatekeep
   for(int i = 0; i < target_val.size(); i++){
     if(target_val[i] < limits[i].first){
@@ -247,20 +263,76 @@ bool is_ok(double theta1, double theta2){
 // insert coordinates, arm goes there
 void go_to(double _x, double _y, double _z, std::vector<double> &target_val){
   std::vector<double> goal(3);
-  if(!is_ok(_x, _y)) return;
   //convert to angle (I got them flipped the entire time)
   goal[1] = asin(sqrt((_x*_x+_y*_y))/2/l) + atan(_y/_x);
   goal[0] = asin(sqrt((_x*_x+_y*_y))/2/l) - atan(_y/_x);
   goal[2] = _z/2.5;
-  target_val[0] = goal[0];
-  target_val[1] = goal[1];
-  target_val[4] = goal[2];
-  // if(target_val[0] < goal[0]) target_val[0] += speed_x;
-  // else if(target_val[0] > goal[0]) target_val[0] -= speed_x;
-  // if(target_val[1] < goal[1]) target_val[1] += speed_y;
-  // else if(target_val[1] > goal[1]) target_val[1] -= speed_y;
-  // if(target_val[4] < goal[2]) target_val[4] += scale_ax;
-  // else if(target_val[4] > goal[2]) target_val[4] -= scale_ax;
+  if(abs(target_val[0] - goal[0]) < go_back_speed) {
+    target_val[0] = goal[0];
+  }else{
+    if(target_val[0] < goal[0]) target_val[0] += go_back_speed;
+    else if(target_val[0] > goal[0]) target_val[0] -= go_back_speed;
+  }
+
+  if(abs(target_val[1] - goal[1]) < go_back_speed){
+    target_val[1] = goal[1];
+  }else{
+    if(target_val[1] < goal[1]) target_val[1] += go_back_speed;
+    else if(target_val[1] > goal[1]) target_val[1] -= go_back_speed;
+  }
+
+  if(abs(target_val[4] - goal[2]) < rad(5)){
+    target_val[4] = goal[2];
+  }else{
+    if(target_val[4] < goal[2]) target_val[4] += scale_ax;
+    else if(target_val[4] > goal[2]) target_val[4] -= scale_ax;
+  }
+}
+
+// void mx_move(double cur_height, double target_height){
+//   double target_val3 = (target_height - 19.63)/worm_pitch;
+//     if(abs(target_val[3] - target_val3) < rad(5)){
+//     target_val[3] = target_val3;
+//   }else{
+//     if(target_val[3] < target_val3) target_val[3] += rad(vel_mx_write);
+//     else if(target_val[3] > target_val3) target_val[3] -= rad(vel_mx_write);
+//   }
+//   if(abs(cur_height - target_height) < 0.5){
+//     phase_mxdown = false;
+//     phase_mxup = false;
+//   }
+// }
+
+void choose_phase(){
+  if(!paused || arrived ){
+    phase_mxdown = false;
+    phase_goto = false;
+    phase_mxup = false;
+  }
+  if(t > 1 && t < 1.8 ){
+    ROS_INFO("phase: MX_DOWN......");
+    phase_mxdown = true;
+    phase_goto = false;
+    phase_mxup = false;
+  }
+  else if(t > 3 && t < 6 ){
+    ROS_INFO("phase: MOVING ARM.....");
+    phase_mxdown = false;
+    phase_goto = true;
+    phase_mxup = false;
+  }
+  else if(t > 6.2 && t < 7 ){
+    ROS_INFO("phase: MX_UP.........");
+    phase_mxdown = false;
+    phase_goto = false;
+    phase_mxup = true;
+  }
+  else if(t > 7.5 && t < 8){
+    if(arrived){
+      opening = false; // open arm
+      t = 0;
+    }
+  }
 }
 
 void make_move(std::vector<double> &target_val, std::vector<double> &theta){
@@ -268,7 +340,7 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   double signy = vel_ax_y >= 0? 1:-1;
   double x = l*(sin(theta[0]) + sin(theta[1]));
   double y = l*(cos(theta[0]) - cos(theta[1]));
-  double z = -(theta[4] - rad(75)) * 2.5;
+  double z = (theta[4] - rad(75)) * 2.5;
   
   double dtheta1 = signx * speed_x;
   double dtheta2 = signy * speed_y;
@@ -287,15 +359,31 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   // autonomous
   else if(autonomous && !arrived){
     // paused_collection = true;
-    go_to(tomato_x - armdim_x, tomato_y, tomato_z + rad(75)* 2.5 + z, target_val);
-    paused = true;
-    if(t > 5) paused = false; 
-    if(t > 7) go_back(theta, target_val);
-    arrived = is_arrived(theta, target_val);
-    if(arrived){
-      opening = false;
-      t = 0;
-    }
+    std::vector<double> tomato_relative = {tomato_x - armdim_x, tomato_y, tomato_z + rad(75)* 2.5};
+    double _x = tomato_relative[0];
+    double _y = tomato_relative[1];
+    double _z = tomato_relative[2];
+
+    std::vector<double> final_val = { 
+      asin(sqrt((_x*_x+_y*_y))/2/l) - atan(_y/_x),
+      asin(sqrt((_x*_x+_y*_y))/2/l) + atan(_y/_x), 
+      opened,
+      0.0,
+      _z/2.5
+    };
+
+    if(!is_ok(_x, _y)) paused = false;
+    else paused = true;
+    choose_phase();
+    if(phase_mxdown) target_val[3] -= rad(scale_mx);
+    else if(phase_goto) go_to(_x, _y, _z , target_val);
+    else if(phase_mxup) target_val[3] += rad(scale_mx);
+    if(t > 10) go_back(theta, target_val); //reset
+    arrived = is_arrived(theta, final_val);
+
+    ROS_INFO("%d , %d, %d ", phase_goto, phase_mxdown, phase_mxup);
+
+
   }
 
   // states for going back 
@@ -313,8 +401,11 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
     ROS_INFO("COORDS: [%f, %f, %f]", x, y, z);
     ROS_INFO("t: %f", t);
     ROS_INFO("%f", mx_pos);
+    ROS_INFO("goal: %f, %f, %f," , tomato_x - armdim_x, tomato_y, tomato_z + rad(75)* 2.5 + z);
+    ROS_ERROR("paused = %d",  paused);
+    ROS_ERROR("wait = %d", wait);
 
-    if(tomato_x > 17) ROS_ERROR("TOO FAR !! move closer");
+    if(tomato_x > 18) ROS_ERROR("TOO FAR !! move closer");
   }
 
   // time update
@@ -322,6 +413,8 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
 
   limitcheck(target_val);
 }
+
+
 
 int main(int argc, char ** argv)
 {
@@ -349,7 +442,7 @@ int main(int argc, char ** argv)
   
   dynamixelcontrol.torque_on();
 
-  std::vector<double> target_positions{rad(-75), rad(105), opened, 0, rad(75)};
+  std::vector<double> target_positions{rad(-75), rad(105), opened, rad(1788), rad(75)};
   std::vector<double> current_values(5);
 
   while(ros::ok())
