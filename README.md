@@ -20,20 +20,20 @@ $ catkin build
 ```
 
 ## Updates
-5.0.1
+### 5.0.1
 - Added control phases
 - Phase #1 Fast movement
 - Phase #2 Contact with tomato
 - Phase #3 Pushing motion
 - Phase #4 Catch and pull
 
-4.1.1
+### 4.1.1
 - rviz visualization
 - adjusted for extended position control (mx)
 - added mx position based on mx angle(cm)
 - fixed tomato x,y,z geometry
 
-4.0.1
+### 4.0.1
 - Realsense and yolov8 for tomato positioning (param2.cpp, real.launch)
 - Monocular camera also supported (follow.launch)
 - Added "start" button functionality for toggle between autonomous mode and controlled mode
