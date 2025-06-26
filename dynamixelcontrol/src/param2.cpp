@@ -37,6 +37,9 @@ bool has_realsense_data = false;
 // bool paused_collection = false;
 
 
+//moving states
+bool moving = false;
+
 // arm states
 float vel_ax_x = 0.0;
 float vel_ax_y = 0.0;
@@ -45,6 +48,7 @@ bool paused = false;
 bool backed = false;
 bool fixed_y = true;
 bool goback = false;
+bool wait = false;
 double closed = rad(-50);
 double opened = rad(10);
 double l = 9; // cm
@@ -59,7 +63,7 @@ float lt = 0;
 // camera states
 double cam_angle = rad(-2);
 double cam_angle_real = rad(-15);
-double armdim_x = 8;
+double armdim_x = 9;
 double armdim_y = 9;
 
 // velocity variables
@@ -69,11 +73,13 @@ float vel_ax_1 = 0.0;
 float vel_ax_2 = 0.0;
 double speed_x = 0.02;
 double speed_y = 0.02;
+double go_back_speed = 0.08;
 float scale_mx = 30.0; // 3/s? that's 30/ds
 
 // mx position (cm)
-float mx_pos = 3.0;
-double worm_pitch = 1.5;
+float mx_pos = 0; // cm
+double worm_pitch = 1.5 / (2* M_PI);
+double mx_limit = 24; //cm
 
 
 // example range
@@ -85,7 +91,7 @@ double worm_pitch = 1.5;
 bool is_arrived(std::vector<double> &cur_val, std::vector<double> &target_val){
   for(int i = 0; i <5; i++){
     if(i == 2 || i== 3) continue;
-    if(abs(cur_val[i] - target_val[i]) < 0.08) continue;
+    if(abs(cur_val[i] - target_val[i]) < 0.1) continue;
     else return false;
   }
   return true;
@@ -94,6 +100,7 @@ bool is_arrived(std::vector<double> &cur_val, std::vector<double> &target_val){
 
 // reset arm position
 void go_back(std::vector<double> &cur_val, std::vector<double> &target_val){
+  wait = true;
   target_val[0] = rad(-75);
   target_val[1] = rad(105);
   target_val[4] = rad(75);
@@ -105,6 +112,7 @@ void go_back(std::vector<double> &cur_val, std::vector<double> &target_val){
     paused = false;
     opening = true;
     goback = false;
+    wait = false;
     // paused_collection = false;
     t = 0;
   } 
@@ -167,9 +175,9 @@ void realsensePointCallback(const geometry_msgs::PointStamped::ConstPtr& msg)
     double center_z = msg->point.z * -100.0;
     
     //tomato_x within (7, 21)
-    tomato_x = distance * cos(cam_angle_real) - center_y * sin(cam_angle_real) - 4.5; 
+    tomato_x = distance * cos(cam_angle_real) - center_y * sin(cam_angle_real) - 3; 
     // tomato_y has to be within (0, 14)
-    tomato_y = center_y * cos(cam_angle_real) + distance * sin(cam_angle_real) + 14.2; // calibration needed
+    tomato_y = center_y * cos(cam_angle_real) + distance * sin(cam_angle_real) + 14.8; // calibration needed
     //tomato_z within (-5.5, 5.5)
     tomato_z = center_z + 4.0;
 }
@@ -219,11 +227,11 @@ void limitcheck(std::vector<double> &target_val){
   std::vector<std::pair<double, double>> limits = {
     {rad(-70), rad(80)},
     {rad(-target_val[0]+10), rad(-target_val[0]+140)},
-    {rad(-150), rad(150)},
-    {-100, 100},
-    {rad(20), rad(120)}
+    {rad(-150), rad(150) },
+    {-100, (mx_limit- 19.63)/worm_pitch},
+    {rad(20), rad(120)},
+    {rad(0), rad(-45)}
   };
-
   // gatekeep
   for(int i = 0; i < target_val.size(); i++){
     if(target_val[i] < limits[i].first){
@@ -252,15 +260,26 @@ void go_to(double _x, double _y, double _z, std::vector<double> &target_val){
   goal[1] = asin(sqrt((_x*_x+_y*_y))/2/l) + atan(_y/_x);
   goal[0] = asin(sqrt((_x*_x+_y*_y))/2/l) - atan(_y/_x);
   goal[2] = _z/2.5;
-  target_val[0] = goal[0];
-  target_val[1] = goal[1];
-  target_val[4] = goal[2];
-  // if(target_val[0] < goal[0]) target_val[0] += speed_x;
-  // else if(target_val[0] > goal[0]) target_val[0] -= speed_x;
-  // if(target_val[1] < goal[1]) target_val[1] += speed_y;
-  // else if(target_val[1] > goal[1]) target_val[1] -= speed_y;
-  // if(target_val[4] < goal[2]) target_val[4] += scale_ax;
-  // else if(target_val[4] > goal[2]) target_val[4] -= scale_ax;
+  if(abs(target_val[0] - goal[0]) < go_back_speed) {
+    target_val[0] = goal[0];
+  }else{
+    if(target_val[0] < goal[0]) target_val[0] += go_back_speed;
+    else if(target_val[0] > goal[0]) target_val[0] -= go_back_speed;
+  }
+
+  if(abs(target_val[1] - goal[1]) < go_back_speed){
+    target_val[1] = goal[1];
+  }else{
+    if(target_val[1] < goal[1]) target_val[1] += go_back_speed;
+    else if(target_val[1] > goal[1]) target_val[1] -= go_back_speed;
+  }
+
+  if(abs(target_val[4] - goal[2]) < rad(5)){
+    target_val[4] = goal[2];
+  }else{
+    if(target_val[4] < goal[2]) target_val[4] += scale_ax;
+    else if(target_val[4] > goal[2]) target_val[4] -= scale_ax;
+  }
 }
 
 void make_move(std::vector<double> &target_val, std::vector<double> &theta){
@@ -287,11 +306,29 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   // autonomous
   else if(autonomous && !arrived){
     // paused_collection = true;
-    go_to(tomato_x - armdim_x, tomato_y, tomato_z + rad(75)* 2.5 + z, target_val);
+    std::vector<double> tomato_relative = {tomato_x - armdim_x, tomato_y, tomato_z + rad(75)* 2.5};
+    double _x = tomato_relative[0];
+    double _y = tomato_relative[1];
+    double _z = tomato_relative[2];
+
+    std::vector<double> final_val = { 
+      asin(sqrt((_x*_x+_y*_y))/2/l) - atan(_y/_x),
+      asin(sqrt((_x*_x+_y*_y))/2/l) + atan(_y/_x), 
+      opened,
+      0.0,
+      _z/2.5
+    };
+
+    
+    go_to(_x, _y, _z , target_val);
     paused = true;
-    if(t > 5) paused = false; 
-    if(t > 7) go_back(theta, target_val);
-    arrived = is_arrived(theta, target_val);
+    if(t > 5) go_back(theta, target_val); //reset
+    arrived = is_arrived(theta, final_val);
+     if(abs(t - round(t)) < 0.03){
+      ROS_ERROR("theta = %f, %f, %f", theta[0], theta[1], theta[2]);
+      ROS_ERROR("convert = %f, %f, %f", final_val[0], final_val[1], final_val[4]);
+     }
+
     if(arrived){
       opening = false;
       t = 0;
@@ -313,6 +350,9 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
     ROS_INFO("COORDS: [%f, %f, %f]", x, y, z);
     ROS_INFO("t: %f", t);
     ROS_INFO("%f", mx_pos);
+    ROS_INFO("goal: %f, %f, %f," , tomato_x - armdim_x, tomato_y, tomato_z + rad(75)* 2.5 + z);
+    ROS_ERROR("paused = %d",  paused);
+    ROS_ERROR("wait = %d", wait);
 
     if(tomato_x > 17) ROS_ERROR("TOO FAR !! move closer");
   }
