@@ -49,8 +49,9 @@ bool backed = false;
 bool fixed_y = true;
 bool goback = false;
 bool wait = false;
-double closed = rad(-50);
-double opened = rad(10);
+double closed = rad(-14.81);
+double half_closed = rad(0.5);
+double opened = rad(18.75);
 double l = 9; // cm
 bool phase_goto = false;
 
@@ -262,7 +263,6 @@ bool is_ok(double theta1, double theta2){
 // insert coordinates, arm goes there
 void go_to(double _x, double _y, double _z, std::vector<double> &target_val){
   std::vector<double> goal(3);
-  if(!is_ok(_x, _y)) return;
   //convert to angle (I got them flipped the entire time)
   goal[1] = asin(sqrt((_x*_x+_y*_y))/2/l) + atan(_y/_x);
   goal[0] = asin(sqrt((_x*_x+_y*_y))/2/l) - atan(_y/_x);
@@ -304,24 +304,34 @@ void go_to(double _x, double _y, double _z, std::vector<double> &target_val){
 // }
 
 void choose_phase(){
-  if(!paused) return;
-  if(t > 1 && t < 2 ){
+  if(!paused || arrived ){
+    phase_mxdown = false;
+    phase_goto = false;
+    phase_mxup = false;
+  }
+  if(t > 1 && t < 1.8 ){
     ROS_INFO("phase: MX_DOWN......");
     phase_mxdown = true;
     phase_goto = false;
     phase_mxup = false;
   }
-  else if(t > 3 && t < 8 ){
+  else if(t > 3 && t < 6 ){
     ROS_INFO("phase: MOVING ARM.....");
     phase_mxdown = false;
     phase_goto = true;
     phase_mxup = false;
   }
-  else if(t > 9 && t < 10 ){
+  else if(t > 6.2 && t < 7 ){
     ROS_INFO("phase: MX_UP.........");
     phase_mxdown = false;
     phase_goto = false;
     phase_mxup = true;
+  }
+  else if(t > 7.5 && t < 8){
+    if(arrived){
+      opening = false; // open arm
+      t = 0;
+    }
   }
 }
 
@@ -362,21 +372,18 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
       _z/2.5
     };
 
-
-    paused = true;
+    if(!is_ok(_x, _y)) paused = false;
+    else paused = true;
     choose_phase();
     if(phase_mxdown) target_val[3] -= rad(scale_mx);
-    if(phase_goto) go_to(_x, _y, _z , target_val);
-    if(phase_mxdown) target_val[3] += rad(scale_mx);
+    else if(phase_goto) go_to(_x, _y, _z , target_val);
+    else if(phase_mxup) target_val[3] += rad(scale_mx);
     if(t > 10) go_back(theta, target_val); //reset
     arrived = is_arrived(theta, final_val);
 
     ROS_INFO("%d , %d, %d ", phase_goto, phase_mxdown, phase_mxup);
 
-    if(arrived){
-      opening = false; // open arm
-      t = 0;
-    }
+
   }
 
   // states for going back 
@@ -398,7 +405,7 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
     ROS_ERROR("paused = %d",  paused);
     ROS_ERROR("wait = %d", wait);
 
-    if(tomato_x > 17) ROS_ERROR("TOO FAR !! move closer");
+    if(tomato_x > 18) ROS_ERROR("TOO FAR !! move closer");
   }
 
   // time update
@@ -435,7 +442,7 @@ int main(int argc, char ** argv)
   
   dynamixelcontrol.torque_on();
 
-  std::vector<double> target_positions{rad(-75), rad(105), opened, 0, rad(75)};
+  std::vector<double> target_positions{rad(-75), rad(105), opened, rad(1788), rad(75)};
   std::vector<double> current_values(5);
 
   while(ros::ok())

@@ -3,7 +3,7 @@
 
 AXMotor::AXMotor(int id, dynamixel::PortHandler* porthandler, dynamixel::PacketHandler* packethandler, std::shared_ptr<dynamixel::GroupSyncWrite> groupsyncwrite):
     Motor(id, /*version=*/1.0, porthandler, packethandler), 
-    torque_limit_per(5)
+    torque_limit_per(80)
 {
     this->groupsyncwrite = groupsyncwrite;
 };
