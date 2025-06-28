@@ -20,6 +20,12 @@ $ catkin build
 ```
 
 ## Updates
+### 5.1.1 
+- MASSIVE... Autonomous kobuki movement
+- Autonomous MX movement
+- Cleaned up phases using enum (custom functions for readability)
+- added phases (init, phase1, phase2, goback, kobuki)
+
 ### 5.0.1
 - Better restrictions
 - Reduced speed (positional -> incremental)
@@ -60,6 +66,17 @@ $ catkin build
 bool paused; // for pausing
 bool backed; // for reset position
 bool autonomous; // auto mode
+
+enum Phases{
+  ... //add phases here
+}
+//and later in main
+int main(...){
+  ...
+  switch(current_phase){
+    //add phases here
+  }
+}
 
 void go_to(double _x, double _y, _double _z, ...){
 ...
