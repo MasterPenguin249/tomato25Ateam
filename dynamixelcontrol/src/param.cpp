@@ -62,6 +62,7 @@ float vel_ax_1 = 0.0;
 float vel_ax_2 = 0.0;
 double speed_x = 0.02;
 double speed_y = 0.02;
+double go_back_speed = 0.1;
 float scale_mx = 30.0; // degrees
 
 double prev_val3 = 0.0;
@@ -69,6 +70,11 @@ double prev_val3 = 0.0;
 // mx variables
 float mx_pos = 0; // cm
 double worm_pitch = 1.5 / (2* M_PI);
+double mx_limit = 24; //cm
+
+// top camera
+float camera_scale = 0.02;
+double camera_speed = 0.0;
 
 // example range
 // y(250, 220) minus 150-> (100, 70)?? (because the range is 0,300 not 0,360)
@@ -126,8 +132,17 @@ void joyCallback(const sensor_msgs::Joy& msg)
   else
     vel_mx_write=0;
 
+  // top camera
+  if(msg.axes[6] > 0.8){
+    camera_speed = camera_scale;
+  }else if (msg.axes[6] < -0.8){
+    camera_speed = camera_scale;
+  }else{
+    camera_speed = 0;
+  }
+
   // fixed y or not
-  fixed_y = (msg.axes[2] > 0.8)?  false: true;
+  fixed_y = (msg.axes[2]< -0.8)?  false: true;
 
   int current_start_button = msg.buttons[7];
   // Detect button pressed (start)
@@ -186,9 +201,10 @@ void limitcheck(std::vector<double> &target_val){
   std::vector<std::pair<double, double>> limits = {
     {rad(-70), rad(80)},
     {rad(-target_val[0]+10), rad(-target_val[0]+140)},
-    {rad(-150), rad(150)},
-    {-100, 100},
-    {rad(20), rad(120)}
+    {rad(-150), rad(150) },
+    {-100, (mx_limit- 19.63)/worm_pitch},
+    {rad(20), rad(120)},
+    {rad(0), rad(-45)}
   };
 
   // gatekeep
@@ -238,15 +254,27 @@ void go_to(double _x, double _y, double _z, std::vector<double> &target_val){
   goal[1] = asin(sqrt((_x*_x+_y*_y))/2/l) + atan(_y/_x);
   goal[0] = asin(sqrt((_x*_x+_y*_y))/2/l) - atan(_y/_x);
   goal[2] = _z/2.5;
-  target_val[0] = goal[0];
-  target_val[1] = goal[1];
-  target_val[4] = goal[2];
-  // if(target_val[0] < goal[0]) target_val[0] += speed_x;
-  // else if(target_val[0] > goal[0]) target_val[0] -= speed_x;
-  // if(target_val[1] < goal[1]) target_val[1] += speed_y;
-  // else if(target_val[1] > goal[1]) target_val[1] -= speed_y;
-  // if(target_val[4] < goal[2]) target_val[4] += scale_ax;
-  // else if(target_val[4] > goal[2]) target_val[4] -= scale_ax;
+  if(abs(target_val[0] - goal[0]) < rad(5)) {
+    target_val[0] = goal[0];
+  }else{
+    if(target_val[0] < goal[0]) target_val[0] += go_back_speed;
+    else if(target_val[0] > goal[0]) target_val[0] -= go_back_speed;
+  }
+
+  if(abs(target_val[1] - goal[1]) < rad(5)){
+    target_val[1] = goal[1];
+  }else{
+    if(target_val[1] < goal[1]) target_val[1] += go_back_speed;
+    else if(target_val[1] > goal[1]) target_val[1] -= go_back_speed;
+  }
+
+  if(abs(target_val[4] - goal[2]) < rad(5)){
+    target_val[4] = goal[2];
+  }else{
+    if(target_val[4] < goal[2]) target_val[4] += scale_ax;
+    else if(target_val[4] > goal[2]) target_val[4] -= scale_ax;
+  }
+
 }
 
 void make_move(std::vector<double> &target_val, std::vector<double> &theta){
@@ -296,6 +324,7 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   mx_pos = theta[3] * worm_pitch + 19.63; //calibrated
   target_val[3] += rad(vel_mx_write) ;
   target_val[4] += vel_ax_1; 
+  target_val[5] += camera_speed;
   
   if(abs(t - round(t)) < 0.03){
     ROS_INFO("tomato_xyz: [%f, %f, %f]", tomato_x, tomato_y, tomato_z);
@@ -334,11 +363,12 @@ int main(int argc, char ** argv)
   dynamixelcontrol.addMotor("AX", 3);
   dynamixelcontrol.addMotor("MX", 10, "extended position control");
   dynamixelcontrol.addMotor("AX", 1);   //stage R/L
+  dynamixelcontrol.addMotor("AX", 2);
   
   dynamixelcontrol.torque_on();
 
-  std::vector<double> target_positions{rad(-75), rad(105), opened, 0, rad(75)};
-  std::vector<double> current_values(5);
+  std::vector<double> target_positions{rad(-75), rad(105), opened, 0, rad(75), 0};
+  std::vector<double> current_values(6);
 
   while(ros::ok())
   {
