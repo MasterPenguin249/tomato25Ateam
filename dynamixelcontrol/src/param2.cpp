@@ -39,9 +39,9 @@ bool has_realsense_data = false;
 
 
 //moving states
-double speed_1 = 0.1;
+double speed_1 = 0.05;
 double speed_2 = 0.02;
-double speed_3 = 0.08;
+double speed_3 = 0.06;
 bool phase1 = false;
 bool phase2 = false;
 bool phase3 = false;
@@ -87,8 +87,8 @@ float scale_mx = 30.0; // 3/s? that's 30/ds
 // mx position (cm)
 float mx_pos = 20; // cm
 double worm_pitch = 1.5 / (2* M_PI);
-double mx_limit_upper = 29; //cm
-double mx_limit_lower = 17;
+double mx_limit_upper = 24; //cm
+double mx_limit_lower = 7.5;
 bool phase_mxdown = false;
 bool phase_mxup = false;
 
@@ -115,7 +115,7 @@ void go_back(std::vector<double> &cur_val, std::vector<double> &target_val){
   target_val[0] = rad(-75);
   target_val[1] = rad(105);
   target_val[4] = rad(75);
-  std::vector<double> init_state = {rad(-75), rad(105), opened, 0, rad(75)};
+  std::vector<double> init_state = {rad(-75), rad(105), opened, 0, rad(75), rad(0)};
   backed = is_arrived(cur_val, init_state);
   if(backed){
     ROS_ERROR("YESSSSSSSSSS");
@@ -138,6 +138,14 @@ void joyCallback(const sensor_msgs::Joy& msg)
     vel_ax_1 = msg.buttons[2]*scale_ax;
   else
     vel_ax_1 = 0;
+
+          // cross 
+  if(msg.axes[6]>0.8)
+    vel_ax_2 = scale_ax;
+  else if(msg.axes[6] <-0.8)
+    vel_ax_2 = -scale_ax;
+  else
+    vel_ax_2 = 0;
 
   // arm x, y
   vel_ax_x = msg.axes[4];
@@ -245,7 +253,7 @@ void limitcheck(std::vector<double> &target_val){
     {rad(-150), rad(150) },
     {(mx_limit_lower- 19.63)/worm_pitch, (mx_limit_upper- 19.63)/worm_pitch},
     {rad(20), rad(120)},
-    {rad(0), rad(-45)}
+    {rad(-60), rad(45)},
   };
   // gatekeep
   for(int i = 0; i < target_val.size(); i++){
@@ -414,6 +422,8 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   mx_pos = theta[3] * worm_pitch + 19.63; //calibrated
   target_val[3] += rad(vel_mx_write);
   target_val[4] += vel_ax_1; 
+  target_val[5] += vel_ax_2;
+
   
   if(abs(t - round(t)) < 0.03){
     ROS_INFO("tomato_xyz: [%f, %f, %f]", tomato_x, tomato_y, tomato_z);
@@ -431,6 +441,7 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
   t += 0.04;
 
   limitcheck(target_val);
+
 }
 
 
@@ -458,11 +469,12 @@ int main(int argc, char ** argv)
   dynamixelcontrol.addMotor("AX", 3);
   dynamixelcontrol.addMotor("MX", 10, "extended position control");
   dynamixelcontrol.addMotor("AX", 1);   //stage R/L
+  dynamixelcontrol.addMotor("AX", 2);
   
   dynamixelcontrol.torque_on();
 
-  std::vector<double> target_positions{rad(-75), rad(105), opened, rad(1388), rad(75)};
-  std::vector<double> current_values(5);
+  std::vector<double> target_positions{rad(-75), rad(105), opened, rad(0), rad(75), 0};
+  std::vector<double> current_values(6);
 
   while(ros::ok())
   {
