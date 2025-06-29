@@ -374,6 +374,10 @@ void rough_adjust(){
             }
         }
     }
+
+    if(goback){
+        go_back(theta, target_val);
+    }
 }
 
 void make_move(std::vector<double> &target_val, std::vector<double> &theta){
@@ -459,6 +463,7 @@ int main(int argc, char ** argv)
     mx_pos = current_values[3] * worm_pitch + 19.63; //calibrated
 
     if(autonomous){
+      target_positions[5] = rad(-60);
         switch (current_phase) {
             case INIT:
 
@@ -599,6 +604,7 @@ void go_back(std::vector<double> &cur_val, std::vector<double> &target_val){
     arrived = false;
     paused = false;
     opening = true;
+    target_val[2] = opened;
     goback = false;
     phase_wait = false;
     // paused_collection = false;
