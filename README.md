@@ -104,3 +104,7 @@ $ roslaunch dynamixelcontrol follow.launch
 ```bash
 $ roslaunch dynamixelcontrol real.launch
 ```
+### Kobuki, Camera, arm launched all at once + param3.cpp*
+```bash
+$ roslaunch dynamixelcontrol realauto.launch
+```
