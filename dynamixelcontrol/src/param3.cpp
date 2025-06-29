@@ -92,13 +92,14 @@ float scale_mx = 30.0; // 3/s? that's 30/ds
 // mx position (cm)
 float mx_pos = 20; // cm
 double worm_pitch = 1.5 / (2* M_PI);
-double mx_limit_upper = 37; //cm
-double mx_limit_lower = 21;
+double mx_limit_upper = 30; //cm
+double mx_limit_lower = 14;
 
 // kobuki command
 geometry_msgs::Point command;
 bool tomato_present = false;
 double tKobuki = 0;
+double tomato_best = 20;
 
 enum Phase{
     INIT,
@@ -148,7 +149,7 @@ void joyCallback(const sensor_msgs::Joy& msg)
   if (current_start_button == 1 && prev_start_button == 0){
      autonomous = !autonomous;
      t = 0;
-
+    ROS_INFO("autonomous pressed");
   }
 
   int current_back_button = msg.buttons[6];
@@ -278,7 +279,7 @@ bool tomato_search_optimize(double &target){
     if(tomato_y < -20 ) target += rad(scale_mx); 
     else if(tomato_y > 10 ) target += rad(scale_mx);
 
-    if(tomato_y < 10 && tomato_y > 7) return true;
+    if(tomato_y < 10 ) return true;
     else return false;
 }
 
@@ -328,11 +329,8 @@ void hand_to_tomato(std::vector<double> &target_val, std::vector<double> &theta)
 
     if(abs(t - round(t)) < 0.03){
         ROS_INFO("tomato_xyz: [%f, %f, %f]", tomato_x, tomato_y, tomato_z);
-        ROS_INFO("COORDS: [%f, %f, %f]", x, y, z);
         ROS_INFO("t: %f", t);
-        ROS_INFO("target_value: %f, %f, %f", target_val[0], target_val[1], target_val[2]);
-        ROS_INFO("goal: %f, %f, %f," , tomato_x - armdim_x, tomato_y, tomato_z + rad(75)* 2.5 + z);
-        
+        ROS_INFO("--------------------------------------------------");
     }
 
 
@@ -370,9 +368,9 @@ void rough_adjust(){
         }else if(tomato_z < -2){
             command.y = -1;
         }else{
-            if(tomato_x > 15){
+            if(tomato_x > tomato_best){
                 command.x = 1;
-            }else if(tomato_x < 13){
+            }else if(tomato_x < tomato_best -1){
                 command.x = -1;
             }
         }
@@ -406,11 +404,11 @@ void make_move(std::vector<double> &target_val, std::vector<double> &theta){
     if(abs(t - round(t)) < 0.03){
         ROS_INFO("tomato_xyz: [%f, %f, %f]", tomato_x, tomato_y, tomato_z);
         ROS_INFO("%f", mx_pos);
-        if(tomato_x > 18) ROS_ERROR("TOO FAR !! move closer");
+        if(tomato_x > 16 + armdim_x) ROS_ERROR("TOO FAR !! move closer");
     }
 
     if(goback){
-        go_back(target_val, theta);
+        go_back(theta, target_val);
     }
 
     t += 0.04;
@@ -477,8 +475,10 @@ int main(int argc, char ** argv)
                 if (tomato_search_optimize(target_positions[3])) {
                     current_phase = PHASE2;
                     ROS_INFO("-> Moving to PHASE2");
+                }else{
+
                 }
-                if(mx_pos > 35){
+                if(mx_pos > mx_limit_upper){
                     current_phase = INIT; 
                     ROS_ERROR("Restarting........");
                 }
@@ -488,14 +488,14 @@ int main(int argc, char ** argv)
 
                 hand_to_tomato(target_positions, current_values);
 
-                if(tomato_y > 10 || tomato_y  < 7 ){
+                if(tomato_y > 10 ){
                     ROS_INFO("lost tomato, going back...........");
                     goback = true;
                     current_phase = GOBACK;
                     paused = false;
                 }
-                if(tomato_z < -2 || tomato_z > 2){
-                    ROS_INFO("need to rotate..............");
+                if(tomato_z < -2 || tomato_z > 2 || tomato_x < tomato_best -1 || tomato_x > tomato_best ){
+                    ROS_INFO("need to adjust..............");
                     goback = true;
                     current_phase = KOBUKI;
                     paused = false;
@@ -510,10 +510,10 @@ int main(int argc, char ** argv)
             case KOBUKI:
                 command.z = 1;
                 rough_adjust();
-                if(tomato_x < 30 && tomato_x >= 25) command.z = 0.8;
-                if(tomato_x < 25 && tomato_x >= 20) command.z = 0.5;
-                if(tomato_x < 20 && tomato_x >= 15) command.z = 0.3;
-                if(tomato_x < 15 && tomato_x > 0 && tomato_z < 2 && tomato_z > -2){
+                if(tomato_x < 30 && tomato_x >= 26) command.z = 0.8;
+                if(tomato_x < 26 && tomato_x >= 23) command.z = 0.5;
+                if(tomato_x < 23 && tomato_x >= 20) command.z = 0.3;
+                if(tomato_x < tomato_best && tomato_x > tomato_best - 1 && tomato_z < 2 && tomato_z > -2){
                     command.x = 0;
                     command.y = 0;
                     ROS_INFO("entering fine adjustment..........");
@@ -523,6 +523,7 @@ int main(int argc, char ** argv)
         }
     } else{
         make_move(target_positions, current_values);
+        current_phase = KOBUKI;
     }
 
 
@@ -565,9 +566,11 @@ int main(int argc, char ** argv)
 
 
 bool is_ok(double theta1, double theta2){
+  double x_limit =  autonomous ? 20:16;
+
   double _x = l*(sin(theta1) + sin(theta2));
   double _y = l*(cos(theta1) - cos(theta2));
-  if(sqrt(_x*_x+_y*_y) > 2*l || _x > 18 || _y < -12 || pow(_x + 2, 2)/10 + pow(_y,2)/6 < 1) {
+  if(sqrt(_x*_x+_y*_y) > 2*l || _x > x_limit || _y < -12 || pow(_x + 2, 2)/10 + pow(_y,2)/6 < 1) {
     ROS_ERROR("invalid square values");
     return false;
   }
