@@ -100,6 +100,7 @@ geometry_msgs::Point command;
 bool tomato_present = false;
 double tKobuki = 0;
 double tomato_best = 20;
+bool fine_adjustment = false;
 
 enum Phase{
     INIT,
@@ -358,14 +359,12 @@ void hand_to_tomato(std::vector<double> &target_val, std::vector<double> &theta)
 
 void rough_adjust(){
     if(!tomato_present){
-        // command.y = 0;
-        // command.x = 0;
-        // kobukiSearch();
+      command.x = fine_adjustment ? -1 : 1;
     }
     else if(tomato_present){
-        if(tomato_z > 2){
+        if(tomato_z > 1){
             command.y = 1;
-        }else if(tomato_z < -2){
+        }else if(tomato_z < -1){
             command.y = -1;
         }else{
             if(tomato_x > tomato_best){
@@ -494,10 +493,11 @@ int main(int argc, char ** argv)
                     current_phase = GOBACK;
                     paused = false;
                 }
-                if(tomato_z < -2 || tomato_z > 2 || tomato_x < tomato_best -1 || tomato_x > tomato_best ){
+                if(tomato_z < -1 || tomato_z > 1 || tomato_x < tomato_best -1 || tomato_x > tomato_best ){
                     ROS_INFO("need to adjust..............");
                     goback = true;
                     current_phase = KOBUKI;
+                    fine_adjustment = false;
                     paused = false;
                 }
                 break;
@@ -510,16 +510,25 @@ int main(int argc, char ** argv)
             case KOBUKI:
                 command.z = 1;
                 rough_adjust();
-                if(tomato_x < 30 && tomato_x >= 26) command.z = 0.8;
-                if(tomato_x < 26 && tomato_x >= 23) command.z = 0.5;
-                if(tomato_x < 23 && tomato_x >= 20) command.z = 0.3;
-                if(tomato_x < tomato_best && tomato_x > tomato_best - 1 && tomato_z < 2 && tomato_z > -2){
+                if(tomato_x < 35 && tomato_x >= 28) command.z = 0.8;
+                if(tomato_x < 28 && tomato_x >= 28) command.z = 0.5;
+                if(tomato_x < 26 && tomato_x >= 24) {
+                  fine_adjustment = true;
+                  command.z = 0.3;
+                }
+                if(tomato_x < 24 && tomato_x >= tomato_best) command.z = 0.15;
+                if(tomato_x < tomato_best && tomato_x > tomato_best - 1 && tomato_z < 1 && tomato_z > -1){
                     command.x = 0;
                     command.y = 0;
                     ROS_INFO("entering fine adjustment..........");
                     current_phase = INIT;
                 }
                 
+                /*TODO
+                make case reset position (back up from tomatoes)
+
+                */
+
         }
     } else{
         make_move(target_positions, current_values);
