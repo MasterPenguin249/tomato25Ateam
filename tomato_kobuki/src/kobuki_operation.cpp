@@ -1,58 +1,58 @@
 #include "../include/kobuki_operation/kobuki_operation.hpp"
 #include<sensor_msgs/Joy.h>
-#include <ros/ros.h>
-#include <geometry_msgs/Polygon.h>
-#include <geometry_msgs/Point32.h>
-#include <cstdlib>
+#include<geometry_msgs/Point.h>
 
-const float MAX_ACCEL = 0.4;
-double step = MAX_ACCEL * 0.01;
-double antistep = MAX_ACCEL * -0.02;
-double prev_start_button = 0;
 bool autonomous = false;
-bool moved = false;
+int prev_start_button = 0;
+double t = 0;
+double _g_speed = 0.2;
+double _g_turn = 1;
 
 KobukiOperation::KobukiOperation(double freq) :
     _nh(),
     _freq(freq),
     _update_rate(freq),
     _control{0},
-    _speed_acc(0.1),
-    _turn_acc(0.6)
+    _speed_acc(0.12),
+    _turn_acc(1.0)
 
 {
     _joy_sub = _nh.subscribe("joy",10,&KobukiOperation::joy_callback,this);
+    _param_sub = _nh.subscribe("kobuki_commands", 1, &KobukiOperation::paramCallback, this);
     _kobuki_pub = _nh.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity",1);   
 }
 
 void KobukiOperation::joy_callback(const sensor_msgs::Joy &joy_msg)
 {
-    double _g_speed = 0.4;
+
     double motion_v_tmp = joy_msg.axes[1] * _g_speed;
 
-    double _g_turn = 1;
     double rotation_v_tmp = joy_msg.axes[0] * _g_turn;
 
-    if( abs(joy_msg.axes[1])<=0.1 && abs(joy_msg.axes[0])<=0.1){
-        std::cout << "Stop" << std::endl;
+    if( (abs(joy_msg.axes[1])<=0.1) & (abs(joy_msg.axes[0])<=0.1) ){
+        // std::cout << "Stop" << std::endl;
         kobukiStop();
     }else{
-        std::cout << "Move" << std::endl;
+        // std::cout << "Move" << std::endl;
         kobukiMove(motion_v_tmp, rotation_v_tmp);
     }
 
     int current_start_button = joy_msg.buttons[7];
-  // Detect button pressed (start)
-  if (current_start_button == 1 && prev_start_button == 0) autonomous = !autonomous;
-    /*
-    if(joy_msg.axes[0] < 0){
-        std::cout << "Right" << std::endl;
-        kobukiMove(0, rotation_v_tmp);
-    }else{
-        std::cout << "Left" << std::endl;
-        kobukiMove(0, rotation_v_tmp);
+    if (current_start_button == 1 && prev_start_button == 0){
+        autonomous = !autonomous;
+        t = 0;
     }
-    */
+}
+
+void KobukiOperation::paramCallback(const geometry_msgs::Point &command){
+    if(!autonomous) return;
+    double motion_v_tmp = command.x * _g_speed/3 * command.z;
+    double rotation_v_tmp = command.y * _g_turn/5 * command.z;
+    if( (command.x == 0) & (command.y == 0) ){
+        kobukiStop();
+    }else{
+        kobukiMove(motion_v_tmp, rotation_v_tmp);
+    }
 }
 
 
@@ -106,10 +106,24 @@ void KobukiOperation::normalOperation()
 }
 
 void KobukiOperation::kobukiInterpolate()
-{    
-    _control.control_speed += _control.control_speed < _control.target_speed? step:antistep;
-    _control.control_turn += _control.control_turn < _control.target_turn? step:antistep;
-    std::cout<< _control.control_speed<<std::endl;
+{
+    double speed_diff = _control.control_speed - _control.target_speed;
+    double max_speed_acc=_speed_acc/_freq;
+
+    if (abs(speed_diff)<= max_speed_acc){
+        _control.control_speed = _control.target_speed;
+    } else{
+        _control.control_speed +=(speed_diff>0?-1:1)*max_speed_acc;
+    }
+
+    double turn_diff = _control.control_turn - _control.target_turn;
+    double max_turn_acc=_turn_acc/_freq;
+
+    if (abs(turn_diff)<= max_turn_acc){
+        _control.control_turn = _control.target_turn;
+    } else{
+        _control.control_turn +=(turn_diff>0?-1:1)*max_turn_acc;
+    }
 
     geometry_msgs::Twist command;
     command.linear.x = _control.control_speed;

@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <termios.h>
 #include <fcntl.h>
-#include<sensor_msgs/Joy.h>
+#include <sensor_msgs/Joy.h>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <kobuki_msgs/BumperEvent.h>
+#include <geometry_msgs/Point.h>
 
 
 class KobukiOperation
@@ -14,8 +15,9 @@ public:
     KobukiOperation(double freq = 10);
     void spin();
 private:
+    void paramCallback(const geometry_msgs::Point &command);
     void joy_callback(const sensor_msgs::Joy &joy_msg);
-    void kobukiMove(double speed, double turn);
+    void kobukiMove(double speed,  double turn);
     void kobukiKeep(double duration, bool exit_w_interrupt = true);
 
     void kobukiStop();
@@ -25,6 +27,7 @@ private:
     ros::NodeHandle _nh;
     ros::Subscriber _joy_sub;
     ros::Publisher  _kobuki_pub;
+    ros::Subscriber _param_sub;
 
     const double _freq;
     ros::Rate _update_rate;
