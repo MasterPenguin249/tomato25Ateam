@@ -80,7 +80,7 @@ class RealSenseTomatoDetector:
         self.tomato_point_pub = rospy.Publisher('/realsense/tomato_3d_point', PointStamped, queue_size=1)
         
         # Parameters
-        self.confidence_threshold = rospy.get_param('~confidence_threshold', 0.5)
+        self.confidence_threshold = rospy.get_param('~confidence_threshold', 0.03)
         self.camera_frame = rospy.get_param('~camera_frame', 'camera_link')
         self.tomato_class_name = rospy.get_param('~tomato_class_name', 'tomato')
         
@@ -151,6 +151,7 @@ class RealSenseTomatoDetector:
         """
         Detect tomatoes using YOLOv8 and get their 3D coordinates
         """
+        self.confidence_threshold
         # Run YOLO detection with verbose=False to suppress prints
         results = self.yolo(color_image, conf=self.confidence_threshold, verbose=False)
         
@@ -162,6 +163,7 @@ class RealSenseTomatoDetector:
         annotated_image = color_image.copy()
         best_tomato_3d = None
         min_height = float('-inf')
+        min_distance = float('inf')
         
         for result in results:
             boxes = result.boxes
@@ -199,6 +201,9 @@ class RealSenseTomatoDetector:
                             
                         # Calculate distance for closest tomato selection
                         distance = math.sqrt(sum(coord**2 for coord in camera_coords))
+                        if distance > 25: self.confidence_threshold = 0.01
+                        elif distance < 25 and distance > 0: self.confidence_threshold = 0.02
+                        # elif distance < 20: self.confidence_threshold = 0.08
                         
                         # Create BoundingBox message (always use "tomato" as class name)
                         bbox_msg = BoundingBox()
@@ -216,8 +221,18 @@ class RealSenseTomatoDetector:
                         #     min_distance = distance
                         #     best_tomato_3d = arm_coords
 
-                        if center_y > min_height:
-                            min_height = center_y
+                        # if distance < min_distance + 2: 
+                        #     if center_y > min_height:
+                        #         min_height = center_y
+                        #         min_distance = distance
+                        #         best_tomato_3d = arm_coords
+                        # else:
+                        #     min_distance = distance
+                        #     min_height = center_y
+                        #     best_tomato_3d = arm_coords
+                            
+                        if distance < min_distance:
+                            min_distance = distance
                             best_tomato_3d = arm_coords
                         
                         # Annotate image with only "tomato" label

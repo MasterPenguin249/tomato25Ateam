@@ -1,0 +1,60 @@
+<launch>
+    <arg name="model_path" default="yolov8n.pt" />
+	<!-- <node name="joy_node" pkg="joy" type="joy_node" /> -->
+	<node name="param3" pkg="dynamixelcontrol" type="param3" output="screen">
+		<param name="dev" value="/dev/ttyUSB0"/>
+	</node> 
+    <!-- RealSense Tomato Detector Node -->
+    <node name="realsense_tomato_detector" pkg="yolo_detection" type="realsense_tomato_detector.py" output="screen">
+        <!-- YOLOv8 Model Parameters -->
+        <param name="model_path" value="$(arg model_path)" />
+        <param name="tomato_class_name" value="tomato" />
+        
+        <!-- Camera Parameters -->
+        <param name="image_width" value="640" />
+        <param name="image_height" value="480" />
+        <param name="fps" value="30" />
+        
+        <!-- Camera Transformation Parameters -->
+        <param name="camera_tilt_angle" value="0.0" />  <!-- degrees, matching your cam_angle -->
+        <param name="camera_height" value="0.0" />        <!-- meters above arm base -->
+        <param name="camera_offset_x" value="0.0" />      <!-- meters from arm base -->
+        <param name="camera_frame" value="camera_link" />
+        
+        <!-- Depth Filtering -->
+        <param name="min_depth" value="0.1" />  <!-- meters -->
+        <param name="max_depth" value="3.0" />   <!-- meters -->
+    </node>
+    
+    <node pkg="usb_cam" type="usb_cam_node" name="cam_image1" output="screen">
+        <param name="video_device" type="string" value="/dev/video10"/>
+    </node>
+
+    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find yolo_detection)/rviz/tomato.rviz"/> -->
+
+      <!-- Turtlebot -->
+  <arg name="base"              default="$(env TURTLEBOT_BASE)"         doc="mobile base type [create, roomba]"/>
+  <arg name="battery"           default="$(env TURTLEBOT_BATTERY)"      doc="kernel provided locatio for battery info, use /proc/acpi/battery/BAT0 in 2.6 or earlier kernels." />
+  <arg name="stacks"            default="$(env TURTLEBOT_STACKS)"       doc="stack type displayed in visualisation/simulation [circles, hexagons]"/>
+  <arg name="3d_sensor"         default="$(env TURTLEBOT_3D_SENSOR)"    doc="3d sensor types [kinect, asux_xtion_pro]"/>
+  <arg name="simulation"        default="$(env TURTLEBOT_SIMULATION)"   doc="set flags to indicate this turtle is run in simulation mode."/>
+  <arg name="serialport"        default="$(env TURTLEBOT_SERIAL_PORT)"  doc="used by create to configure the port it is connected on [/dev/ttyUSB0, /dev/ttyS0]"/>
+  int current_start_button = msg.buttons[7];
+  <param name="/use_sim_time" value="$(arg simulation)"/>
+
+  <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+    <arg name="base" value="$(arg base)" />
+    <arg name="stacks" value="$(arg stacks)" />
+    <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+  </include>
+  <include file="$(find turtlebot_bringup)/launch/includes/mobile_base.launch.xml">
+    <arg name="base" value="$(arg base)" />
+    <arg name="serialport" value="$(arg serialport)" />
+  </include>
+  
+  <!--node name="joy_node" pkg="joy" type="joy_node" output="screen"/-->
+ 
+  <node name="kobuki_operation" pkg="tomato_kobuki" type="kobuki_operation" output="screen"/>
+
+
+</launch>
